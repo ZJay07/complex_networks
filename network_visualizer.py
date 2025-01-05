@@ -911,6 +911,8 @@ class NetworkVisualizer:
         # Track impact metrics
         results = []
         for i in range(n_remove):
+            if i % 100 == 0:
+                logging.info(f"Removed edge {i + 1}")
             if i < len(edges):
                 edge = edges[i]
                 G_copy.remove_edge(*edge)
@@ -926,7 +928,7 @@ class NetworkVisualizer:
                     "num_components": num_components,
                     "remaining_edges": remaining_edges
                 })
-        print(f"Simulated random edge removal for {n_remove} edges.")
+        logging.info(f"Simulated random edge removal for {n_remove} edges.")
         return results
     def simulate_incremental_weak_tie_removal(self, step_percentage=0.5):
         total_nodes = 2502
