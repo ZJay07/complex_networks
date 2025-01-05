@@ -4,3 +4,4 @@ seaborn==0.12.2         # For advanced visualizations
 numpy==1.24.4           # For numerical operations
 pandas==2.1.1           # For data manipulation and analysis
 scipy==1.11.3           # For optimization and scientific computations
+community==1.0.0b1       # For community detection
