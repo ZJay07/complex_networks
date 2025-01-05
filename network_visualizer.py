@@ -1040,9 +1040,9 @@ def main():
 
         # hubs_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="hubs")
 
-        auth_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="authorities")
+        # auth_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="authorities")
 
-    #     random_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="random")
+        random_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="random")
 
     #     results = visualizer.simulate_random_edge_removal(n_remove=20)
 
@@ -1068,11 +1068,11 @@ def main():
         # visualizer.plot_cascade_results(hubs_results, removal_type="nodes", strategy="hubs")
         # plt.savefig(f'hubs_plot_{current_time}.png')
 
-        visualizer.plot_cascade_results(auth_results, removal_type="nodes", strategy="authorities")
-        plt.savefig(f'authorities_plot_{current_time}.png')
+        # visualizer.plot_cascade_results(auth_results, removal_type="nodes", strategy="authorities")
+        # plt.savefig(f'authorities_plot_{current_time}.png')
 
-    #     visualizer.plot_cascade_results(random_results, removal_type="nodes", strategy="random")
-    #     plt.savefig(f'random_plot_{current_time}.png')
+        visualizer.plot_cascade_results(random_results, removal_type="nodes", strategy="random")
+        plt.savefig(f'random_plot_{current_time}.png')
 
     #     #targeted attack bridge nodes
     #     bridge_nodes = visualizer.get_bridge_nodes(max_in_degree=10)
