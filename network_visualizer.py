@@ -5,6 +5,9 @@ import seaborn as sns
 import numpy as np
 import pandas as pd
 from scipy.optimize import curve_fit
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 class NetworkVisualizer:
     def __init__(self, nodes_file, edges_file):
@@ -14,7 +17,7 @@ class NetworkVisualizer:
 
     def create_network(self):
         """Create directed network from edge list"""
-        print("Creating network...")
+        logging.info("Creating network...")
         G = nx.DiGraph()
         
         # Add nodes with attributes
@@ -26,8 +29,8 @@ class NetworkVisualizer:
         # Add edges
         for _, row in self.edges_df.iterrows():
             G.add_edge(row['Source'], row['Target'])
-        print("Network created.")
-        print("Network created with nodes:", G.number_of_nodes(), "and edges:", G.number_of_edges())
+        logging.info("Network created.")
+        logging.info("Network created with nodes:", G.number_of_nodes(), "and edges:", G.number_of_edges())
         return G
 
     # def plot_network_structure(self, k_core=2, max_nodes=1000):
@@ -642,20 +645,20 @@ class NetworkVisualizer:
 
     def print_network_stats(self):
         """Print basic network statistics"""
-        print(f"\nNetwork Statistics:")
-        print(f"Number of nodes: {self.G.number_of_nodes()}")
-        print(f"Number of edges: {self.G.number_of_edges()}")
-        print(f"Number of self-loops: {len(list(nx.selfloop_edges(self.G)))}")
+        logging.info(f"\nNetwork Statistics:")
+        logging.info(f"Number of nodes: {self.G.number_of_nodes()}")
+        logging.info(f"Number of edges: {self.G.number_of_edges()}")
+        logging.info(f"Number of self-loops: {len(list(nx.selfloop_edges(self.G)))}")
         
         # Check degree statistics
         in_degrees = [d for n, d in self.G.in_degree()]
         out_degrees = [d for n, d in self.G.out_degree()]
         
-        print(f"\nDegree Statistics:")
-        print(f"Max in-degree: {max(in_degrees)}")
-        print(f"Max out-degree: {max(out_degrees)}")
-        print(f"Average in-degree: {sum(in_degrees)/len(in_degrees):.2f}")
-        print(f"Average out-degree: {sum(out_degrees)/len(out_degrees):.2f}")
+        logging.info(f"\nDegree Statistics:")
+        logging.info(f"Max in-degree: {max(in_degrees)}")
+        logging.info(f"Max out-degree: {max(out_degrees)}")
+        logging.info(f"Average in-degree: {sum(in_degrees)/len(in_degrees):.2f}")
+        logging.info(f"Average out-degree: {sum(out_degrees)/len(out_degrees):.2f}")
 
     def simulate_cascade_failure(self, n_remove=10, strategy="pagerank"):
         """
@@ -669,11 +672,11 @@ class NetworkVisualizer:
         Returns:
         - results: A list of dictionaries with the impact metrics at each step.
         """
-        print(f"Simulating cascade failure ({strategy})...")
+        logging.info(f"Simulating cascade failure ({strategy})...")
         G_copy = self.G.copy()
 
         # Compute centrality metrics
-        print("Computing centrality metrics...")
+        logging.info("Computing centrality metrics...")
         if strategy == "pagerank":
             pagerank = nx.pagerank(G_copy)
             sorted_nodes = sorted(pagerank.items(), key=lambda x: x[1], reverse=True)
@@ -691,16 +694,16 @@ class NetworkVisualizer:
 
         # Track impact metrics
         results = []
-        print(f"Removing {n_remove} nodes based on {strategy} strategy.")
+        logging.info(f"Removing {n_remove} nodes based on {strategy} strategy.")
         for i in range(n_remove):
             if i % 100 == 0:
-                print("Removed node", i + 1)
+                logging.info("Removed node", i + 1)
             if i < len(sorted_nodes):
                 # Extract node ID (for non-random strategies, extract the first element of the tuple)
                 node = sorted_nodes[i][0] if strategy != "random" else sorted_nodes[i]
                 
                 if node not in G_copy:
-                    print(f"Warning: Node {node} not found in the graph. Skipping.")
+                    logging.info(f"Warning: Node {node} not found in the graph. Skipping.")
                     continue
                 
                 G_copy.remove_node(node)
@@ -716,7 +719,7 @@ class NetworkVisualizer:
                     "num_components": num_components,
                     "remaining_edges": remaining_edges
                 })
-        print("Simulation completed.")
+        logging.info("Simulation completed.")
         return results
     
     def get_rich_club_nodes(self, degree_type="in", degree_threshold=10):
@@ -828,6 +831,7 @@ class NetworkVisualizer:
         Returns:
             List of bridge nodes sorted by betweenness centrality
         """
+        logging.info(f"Finding bridge nodes with in-degree <= {max_in_degree}...")
         # First get nodes with low in-degree
         low_degree_nodes = [n for n, d in self.G.in_degree() if d <= max_in_degree]
         
@@ -842,7 +846,7 @@ class NetworkVisualizer:
         num_rich_club = len(self.get_rich_club_nodes(degree_threshold=50))
         bridge_nodes = [node for node, _ in bridge_nodes[:num_rich_club]]
         
-        print(f"Found {len(bridge_nodes)} bridge nodes with in-degree <= {max_in_degree}")
+        logging.info(f"Found {len(bridge_nodes)} bridge nodes with in-degree <= {max_in_degree}")
         return bridge_nodes
 
     def simulate_bridge_failure(self, bridge_nodes):
@@ -856,7 +860,7 @@ class NetworkVisualizer:
         Returns:
             List of impact metrics after each removal
         """
-        print("Simulating bridge node failure...")
+        logging.info("Simulating bridge node failure...")
         G_copy = self.G.copy()
         results = []
 
@@ -876,9 +880,9 @@ class NetworkVisualizer:
                     "remaining_edges": remaining_edges
                 })
             if i % 100 == 0:
-                print(f"Removed node {i + 1} of {len(bridge_nodes)}")
+                logging.info(f"Removed node {i + 1} of {len(bridge_nodes)}")
         
-        print("Bridge node failure simulation completed.")
+        logging.info("Bridge node failure simulation completed.")
         return results
         
     def simulate_random_edge_removal(self, n_remove=100):
@@ -891,7 +895,7 @@ class NetworkVisualizer:
         Returns:
         - results: A list of dictionaries with the impact metrics at each step.
         """
-        print("Simulating random edge removal...")
+        logging.info("Simulating random edge removal...")
         G_copy = self.G.copy()
         edges = list(G_copy.edges())
         np.random.shuffle(edges)
@@ -1098,17 +1102,17 @@ def generate_synthetic_networks(original_graph, num_nodes):
     Generate synthetic networks: Barabási–Albert (BA) and Erdős–Rényi (Random)
     """
     # Number of edges to attach for BA model
-    print("Generating synthetic networks...")
-    print(f"Type of input graph before: {type(original_graph)}")
+    logging.info("Generating synthetic networks...")
+    logging.info(f"Type of input graph before: {type(original_graph)}")
     avg_degree = int(np.mean([deg for _, deg in original_graph.degree()]))
-    print("generating BA")
+    logging.info("generating BA")
     ba_graph = nx.barabasi_albert_graph(num_nodes, avg_degree)
     ba_graph = nx.DiGraph(ba_graph)  # Convert to directed graph
-    print("generating ER")
+    logging.info("generating ER")
     probability = (avg_degree / num_nodes)
     er_graph = nx.fast_gnp_random_graph(num_nodes, probability)
     er_graph = nx.DiGraph(er_graph)  # Convert to directed graph
-    print("Synthetic networks generated.")
+    logging.info("Synthetic networks generated.")
     return ba_graph, er_graph
 
 def generate_synthetic_networks_directed(original_graph, num_nodes):
