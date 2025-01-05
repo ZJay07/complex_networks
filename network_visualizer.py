@@ -1035,7 +1035,7 @@ def main():
     # visualizer.analyze_assortativity()
 
     try:
-        n_remove = 1
+        n_remove = 2502
         # page_rank_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="pagerank")
 
         # hubs_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="hubs")
