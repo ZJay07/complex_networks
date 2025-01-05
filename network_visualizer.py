@@ -955,6 +955,68 @@ class NetworkVisualizer:
             print(f"Step {i // step_size + 1}: Removed {len(nodes_to_remove)} nodes")
 
         return results
+    def simulate_cascade_failure_interval(self, n_remove=10, strategy="pagerank", interval=10):
+        """
+        Simulate cascade failure by removing top nodes based on a strategy,
+        measuring impact metrics at specified intervals.
+        
+        Parameters:
+            n_remove: Number of nodes to remove
+            strategy: "pagerank", "hubs", "authorities", or "random"
+            interval: How often to calculate metrics (every N nodes)
+        """
+        logging.info(f"Simulating cascade failure ({strategy})...")
+        G_copy = self.G.copy()
+
+        # Compute centrality metrics
+        if strategy == "pagerank":
+            pagerank = nx.pagerank(G_copy)
+            sorted_nodes = sorted(pagerank.items(), key=lambda x: x[1], reverse=True)
+        elif strategy == "hubs":
+            hubs, authorities = nx.hits(G_copy)
+            sorted_nodes = sorted(hubs.items(), key=lambda x: x[1], reverse=True)
+        elif strategy == "authorities":
+            hubs, authorities = nx.hits(G_copy)
+            sorted_nodes = sorted(authorities.items(), key=lambda x: x[1], reverse=True)
+        elif strategy == "random":
+            sorted_nodes = list(G_copy.nodes())
+            np.random.shuffle(sorted_nodes)
+        else:
+            raise ValueError("Invalid strategy")
+
+        results = []
+        nodes_to_remove = []
+        
+        for i in range(min(n_remove, len(sorted_nodes))):
+            node = sorted_nodes[i][0] if strategy != "random" else sorted_nodes[i]
+            if node in G_copy:
+                G_copy.remove_node(node)
+                
+                # Only calculate metrics at intervals
+                if (i + 1) % interval == 0 or i == n_remove - 1:
+                    # Measure impact
+                    largest_cc = len(max(nx.strongly_connected_components(G_copy), key=len))
+                    num_components = nx.number_strongly_connected_components(G_copy)
+                    remaining_edges = G_copy.number_of_edges()
+                    
+                    try:
+                        communities = community.best_partition(G_copy.to_undirected())
+                        modularity = community.modularity(communities, G_copy.to_undirected())
+                    except:
+                        modularity = None
+
+                    results.append({
+                        "nodes_removed": i + 1,
+                        "largest_component_size": largest_cc,
+                        "num_components": num_components,
+                        "remaining_edges": remaining_edges,
+                        "modularity": modularity
+                    })
+                    
+                    if i % 100 == 0:
+                        logging.info(f"Processed node {i + 1}")
+
+        return results
     def plot_cascade_results(self, results, removal_type="nodes", strategy="rich-club"):
         """
         Plot the results of a cascade simulation.
@@ -1036,13 +1098,13 @@ def main():
 
     try:
         n_remove = 2502
-        # page_rank_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="pagerank")
+        page_rank_results = visualizer.simulate_cascade_failure_interval(n_remove=n_remove, strategy="pagerank")
 
         # hubs_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="hubs")
 
         # auth_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="authorities")
 
-        random_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="random")
+        # random_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="random")
 
     #     results = visualizer.simulate_random_edge_removal(n_remove=20)
 
@@ -1062,8 +1124,8 @@ def main():
     #     visualizer.plot_cascade_results(results, removal_type="nodes", strategy="weak-tie")
     #     # Get the current date and time
         current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        # visualizer.plot_cascade_results(page_rank_results, removal_type="nodes", strategy="pagerank")
-        # plt.savefig(f'pagerank_plot_{current_time}.png')
+        visualizer.plot_cascade_results(page_rank_results, removal_type="nodes", strategy="pagerank")
+        plt.savefig(f'pagerank_plot_{current_time}.png')
 
         # visualizer.plot_cascade_results(hubs_results, removal_type="nodes", strategy="hubs")
         # plt.savefig(f'hubs_plot_{current_time}.png')
@@ -1071,8 +1133,8 @@ def main():
         # visualizer.plot_cascade_results(auth_results, removal_type="nodes", strategy="authorities")
         # plt.savefig(f'authorities_plot_{current_time}.png')
 
-        visualizer.plot_cascade_results(random_results, removal_type="nodes", strategy="random")
-        plt.savefig(f'random_plot_{current_time}.png')
+        # visualizer.plot_cascade_results(random_results, removal_type="nodes", strategy="random")
+        # plt.savefig(f'random_plot_{current_time}.png')
 
     #     #targeted attack bridge nodes
     #     bridge_nodes = visualizer.get_bridge_nodes(max_in_degree=10)
