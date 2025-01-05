@@ -1108,7 +1108,7 @@ def main():
 
         # random_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="random")
 
-    #     results = visualizer.simulate_random_edge_removal(n_remove=20)
+        results = visualizer.simulate_random_edge_removal(n_remove=n_remove)
 
     #     # targeted attack: rich nodes
     #     rich_club_nodes = visualizer.get_rich_club_nodes(degree_type="in", degree_threshold=50)
@@ -1116,10 +1116,13 @@ def main():
     #     # Step 2: Simulate failures
     #     results = visualizer.simulate_rich_club_failure(rich_club_nodes)
       #     #targeted attack bridge nodes
-        bridge_nodes = visualizer.get_bridge_nodes(max_in_degree=10)
-        bridge_results = visualizer.simulate_bridge_failure(bridge_nodes)
+        # bridge_nodes = visualizer.get_bridge_nodes(max_in_degree=10)
+        # bridge_results = visualizer.simulate_bridge_failure(bridge_nodes)
     finally:
-    #     visualizer.plot_cascade_results(results, removal_type="edges", strategy="random")
+        #     # Get the current date and time
+        current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        visualizer.plot_cascade_results(results, removal_type="edges", strategy="random")
+        plt.savefig(f'edge_removal_{current_time}.png')
         
     #     # Step 3: Plot the results
     #     visualizer.plot_cascade_results(results, removal_type="nodes", strategy="rich-club")
@@ -1127,8 +1130,6 @@ def main():
     #     # targeted attack weak ties
     #     results = visualizer.simulate_incremental_weak_tie_removal(step_percentage=0.5)
     #     visualizer.plot_cascade_results(results, removal_type="nodes", strategy="weak-tie")
-    #     # Get the current date and time
-        current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         # visualizer.plot_cascade_results(page_rank_results, removal_type="nodes", strategy="pagerank")
         # plt.savefig(f'pagerank_plot_{current_time}.png')
 
@@ -1142,8 +1143,8 @@ def main():
         # plt.savefig(f'random_plot_{current_time}.png')
 
 
-        visualizer.plot_cascade_results(bridge_results, removal_type="nodes", strategy="bridge-nodes")
-        plt.savefig(f'bridge_nodes_plot_{current_time}.png')
+        # visualizer.plot_cascade_results(bridge_results, removal_type="nodes", strategy="bridge-nodes")
+        # plt.savefig(f'bridge_nodes_plot_{current_time}.png')
 
     
     # Save plots
