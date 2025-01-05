@@ -983,7 +983,7 @@ class NetworkVisualizer:
 
 def main():
     # Create visualizer
-    visualizer = NetworkVisualizer('final_csv/pypi_nodes_20241216_081109.csv', 'final_csv/pypi_edges_20241216_081109.csv')
+    visualizer = NetworkVisualizer('pypi_nodes_20241216_081109.csv', 'pypi_edges_20241216_081109.csv')
     
     # Generate all plots
     # Print network statistics first
