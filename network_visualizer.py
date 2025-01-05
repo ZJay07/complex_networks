@@ -1032,9 +1032,9 @@ def main():
         n_remove = 2502
         # page_rank_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="pagerank")
 
-        hubs_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="hubs")
+        # hubs_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="hubs")
 
-    #     auth_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="authorities")
+        auth_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="authorities")
 
     #     random_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="random")
 
@@ -1059,11 +1059,11 @@ def main():
         # visualizer.plot_cascade_results(page_rank_results, removal_type="nodes", strategy="pagerank")
         # plt.savefig(f'pagerank_plot_{current_time}.png')
 
-        visualizer.plot_cascade_results(hubs_results, removal_type="nodes", strategy="hubs")
-        plt.savefig(f'hubs_plot_{current_time}.png')
+        # visualizer.plot_cascade_results(hubs_results, removal_type="nodes", strategy="hubs")
+        # plt.savefig(f'hubs_plot_{current_time}.png')
 
-    #     visualizer.plot_cascade_results(auth_results, removal_type="nodes", strategy="authorities")
-    #     plt.savefig(f'authorities_plot_{current_time}.png')
+        visualizer.plot_cascade_results(auth_results, removal_type="nodes", strategy="authorities")
+        plt.savefig(f'authorities_plot_{current_time}.png')
 
     #     visualizer.plot_cascade_results(random_results, removal_type="nodes", strategy="random")
     #     plt.savefig(f'random_plot_{current_time}.png')
