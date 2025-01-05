@@ -7,7 +7,11 @@ import pandas as pd
 from scipy.optimize import curve_fit
 import logging
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 class NetworkVisualizer:
     def __init__(self, nodes_file, edges_file):
@@ -30,7 +34,7 @@ class NetworkVisualizer:
         for _, row in self.edges_df.iterrows():
             G.add_edge(row['Source'], row['Target'])
         logging.info("Network created.")
-        logging.info("Network created with nodes:", G.number_of_nodes(), "and edges:", G.number_of_edges())
+        logging.info(f"Network created with nodes: {G.number_of_nodes()} and edges: {G.number_of_edges()}")
         return G
 
     # def plot_network_structure(self, k_core=2, max_nodes=1000):
@@ -697,7 +701,7 @@ class NetworkVisualizer:
         logging.info(f"Removing {n_remove} nodes based on {strategy} strategy.")
         for i in range(n_remove):
             if i % 100 == 0:
-                logging.info("Removed node", i + 1)
+                logging.info(f"Removed node {i + 1}")
             if i < len(sorted_nodes):
                 # Extract node ID (for non-random strategies, extract the first element of the tuple)
                 node = sorted_nodes[i][0] if strategy != "random" else sorted_nodes[i]
@@ -865,6 +869,8 @@ class NetworkVisualizer:
         results = []
 
         for i, node in enumerate(bridge_nodes):
+            if i % 100 == 0:
+                logging.info(f"Removed node {i + 1} of {len(bridge_nodes)}")
             if node in G_copy:
                 G_copy.remove_node(node)
 
@@ -1029,7 +1035,7 @@ def main():
     # visualizer.analyze_assortativity()
 
     try:
-        n_remove = 2502
+        n_remove = 1
         # page_rank_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="pagerank")
 
         # hubs_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="hubs")
