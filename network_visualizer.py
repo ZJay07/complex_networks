@@ -285,6 +285,60 @@ class NetworkVisualizer:
     #         results[metric_name] = impact
         
     #     return results
+    def analyze_directed_assortativity(self):
+        """
+        Compute assortativity for all combinations of in and out degrees.
+        Returns dictionary of coefficients and optionally creates visualization.
+        """
+        # Calculate all four types of degree assortativity
+        coefficients = {
+            'in-in': nx.degree_assortativity_coefficient(self.G, x='in', y='in'),
+            'in-out': nx.degree_assortativity_coefficient(self.G, x='in', y='out'),
+            'out-in': nx.degree_assortativity_coefficient(self.G, x='out', y='in'),
+            'out-out': nx.degree_assortativity_coefficient(self.G, x='out', y='out')
+        }
+        
+        # Print results
+        print("\nAssortativity Coefficients:")
+        for pair, coef in coefficients.items():
+            print(f"{pair}: {coef:.4f}")
+        
+        # Get degree dictionaries
+        in_degrees = dict(self.G.in_degree())
+        out_degrees = dict(self.G.out_degree())
+        
+        # Create subplots for all degree correlations
+        fig, axes = plt.subplots(2, 2, figsize=(15, 15))
+        fig.suptitle('Degree Correlations in PyPI Network')
+        
+        # Plot settings
+        plot_settings = [
+            {'x': 'in', 'y': 'in', 'pos': (0,0), 'title': 'In-degree vs In-degree'},
+            {'x': 'in', 'y': 'out', 'pos': (0,1), 'title': 'In-degree vs Out-degree'},
+            {'x': 'out', 'y': 'in', 'pos': (1,0), 'title': 'Out-degree vs In-degree'},
+            {'x': 'out', 'y': 'out', 'pos': (1,1), 'title': 'Out-degree vs Out-degree'}
+        ]
+        
+        for setting in plot_settings:
+            i, j = setting['pos']
+            x_deg = in_degrees if setting['x'] == 'in' else out_degrees
+            y_deg = in_degrees if setting['y'] == 'in' else out_degrees
+            
+            # Get degrees for each edge
+            edge_degrees = [(x_deg[u], y_deg[v]) for u, v in self.G.edges()]
+            x, y = zip(*edge_degrees)
+            
+            # Create hexbin plot for better visualization of dense regions
+            axes[i,j].hexbin(x, y, gridsize=30, bins='log', cmap='YlOrRd')
+            axes[i,j].set_xscale('log')
+            axes[i,j].set_yscale('log')
+            axes[i,j].set_xlabel(f'{setting["x"]}-degree')
+            axes[i,j].set_ylabel(f'{setting["y"]}-degree')
+            axes[i,j].set_title(f'{setting["title"]}\nr = {coefficients[f"{setting["x"]}-{setting["y"]}"]:.4f}')
+            axes[i,j].grid(True)
+        
+        plt.tight_layout()
+        return coefficients
     def analyze_assortativity(self):
         """Compute and visualize the assortativity of the graph."""
         # Compute assortativity coefficient
@@ -738,6 +792,94 @@ class NetworkVisualizer:
                     "remaining_edges": remaining_edges
                 })
         logging.info("Simulation completed.")
+        return results
+    
+    def simulate_cascade_failure_weak(self, n_remove=2502, strategy="pagerank"):
+        """
+        Simulate cascade failure by removing top nodes based on a strategy
+        and measure the impact on the network.
+        
+        Parameters:
+        - n_remove: Number of nodes to remove (default 2502 based on rich club threshold)
+        - strategy: "pagerank", "hubs", "authorities", or "random"
+        
+        Returns:
+        - results: List of dictionaries with impact metrics at each step
+        """
+        print(f"Simulating cascade failure ({strategy})...")
+        G_copy = self.G.copy()
+        initial_nodes = G_copy.number_of_nodes()
+        initial_edges = G_copy.number_of_edges()
+
+        # Compute centrality metrics based on strategy
+        if strategy == "pagerank":
+            centrality = nx.pagerank(G_copy)
+        elif strategy == "hubs":
+            hubs, _ = nx.hits(G_copy)
+            centrality = hubs
+        elif strategy == "authorities":
+            _, authorities = nx.hits(G_copy)
+            centrality = authorities
+        elif strategy == "random":
+            nodes = list(G_copy.nodes())
+            np.random.shuffle(nodes)
+            centrality = {node: 1 for node in nodes}  # Dummy values for consistent processing
+        else:
+            raise ValueError("Invalid strategy. Choose from 'pagerank', 'hubs', 'authorities', 'random'")
+
+        # Sort nodes by centrality
+        sorted_nodes = sorted(centrality.items(), key=lambda x: x[1], reverse=True)
+        results = []
+
+        for i in range(n_remove):
+            if i >= len(sorted_nodes):
+                break
+                
+            node = sorted_nodes[i][0]
+            if node not in G_copy:
+                continue
+
+            # Find all nodes that depend on the removed node (cascade effect)
+            affected_nodes = set()
+            stack = [node]
+            while stack:
+                current = stack.pop()
+                if current not in affected_nodes:
+                    affected_nodes.add(current)
+                    # Add nodes that depend on current node to stack
+                    stack.extend([n for n in G_copy.predecessors(current) 
+                                if n not in affected_nodes])
+
+            # Remove affected nodes
+            G_copy.remove_nodes_from(affected_nodes)
+
+            # Measure impact
+            if G_copy.number_of_nodes() > 0:
+                largest_wcc = len(max(nx.weakly_connected_components(G_copy), key=len))
+                relative_size = largest_wcc / initial_nodes
+                components = nx.number_weakly_connected_components(G_copy)
+                remaining_edges = G_copy.number_of_edges()
+                edge_density = remaining_edges / initial_edges if initial_edges > 0 else 0
+            else:
+                largest_wcc = 0
+                relative_size = 0
+                components = 0
+                remaining_edges = 0
+                edge_density = 0
+
+            results.append({
+                "nodes_removed": i + 1,
+                "nodes_affected": len(affected_nodes),
+                "largest_component_size": largest_wcc,
+                "relative_size": relative_size,
+                "num_components": components,
+                "remaining_edges": remaining_edges,
+                "edge_density": edge_density
+            })
+
+            if i % 100 == 0:
+                print(f"Removed {i+1} nodes, affected {len(affected_nodes)} nodes")
+
         return results
     
     def get_rich_club_nodes(self, degree_type="in", degree_threshold=10):
@@ -1275,10 +1417,10 @@ def main():
     # degree_dist_plot = visualizer.plot_degree_distribution()
     # degree_dist_plot.savefig('degree_distribution.png', dpi=300, bbox_inches='tight')
     # visualizer.analyze_assortativity()
-
+    # visualizer.analyze_directed_assortativity()
     try:
         n_remove = 2502
-        # page_rank_results = visualizer.simulate_cascade_failure_interval(n_remove=n_remove, strategy="pagerank")
+        page_rank_results = visualizer.simulate_cascade_failure_weak(n_remove=n_remove, strategy="pagerank")
 
         # hubs_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="hubs")
 
@@ -1309,8 +1451,8 @@ def main():
     #     # targeted attack weak ties
     #     results = visualizer.simulate_incremental_weak_tie_removal(step_percentage=0.5)
     #     visualizer.plot_cascade_results(results, removal_type="nodes", strategy="weak-tie")
-        # visualizer.plot_cascade_results(page_rank_results, removal_type="nodes", strategy="pagerank")
-        # plt.savefig(f'pagerank_plot_{current_time}.png')
+        visualizer.plot_cascade_results(page_rank_results, removal_type="nodes", strategy="pagerank")
+        plt.savefig(f'pagerank_plot_{current_time}.png')
 
         # visualizer.plot_cascade_results(hubs_results, removal_type="nodes", strategy="hubs")
         # plt.savefig(f'hubs_plot_{current_time}.png')
@@ -1324,11 +1466,11 @@ def main():
 
         # visualizer.plot_cascade_results(bridge_results, removal_type="nodes", strategy="bridge-nodes")
         # plt.savefig(f'bridge_nodes_plot_{current_time}.png')
-        bridge_nodes = visualizer.get_stratified_low_degree_nodes(max_in_degree=10)
-        bridge_results = visualizer.simulate_bridge_failure(bridge_nodes)
+        # bridge_nodes = visualizer.get_stratified_low_degree_nodes(max_in_degree=10)
+        # bridge_results = visualizer.simulate_bridge_failure(bridge_nodes)
 
-        visualizer.plot_cascade_results(bridge_results, removal_type="nodes", strategy="bridge-nodes")
-        plt.savefig(f'bridge_nodes_plot_{current_time}.png')
+        # visualizer.plot_cascade_results(bridge_results, removal_type="nodes", strategy="bridge-nodes")
+        # plt.savefig(f'bridge_nodes_plot_{current_time}.png')
 
     
     # Save plots
