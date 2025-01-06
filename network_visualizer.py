@@ -1,4 +1,6 @@
+from collections import defaultdict
 import datetime
+import random
 import networkx as nx
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -899,6 +901,54 @@ class NetworkVisualizer:
             )
             logging.info(f"Found {len(bridge_nodes)} bridge nodes with in-degree <= {max_in_degree}")
             return [node for node, _ in bridge_nodes[:2502]]
+
+    def get_stratified_low_degree_nodes(self, target_count=2502, max_in_degree=1):
+        """
+        Get low-degree nodes stratified by their out-degree.
+        This helps identify potentially more important low-degree nodes.
+        
+        Parameters:
+            target_count (int): Number of nodes to sample
+            max_in_degree (int): Maximum in-degree to consider
+        
+        Returns:
+            list: Strategically sampled low-degree nodes
+        """
+        # Get low degree nodes
+        low_degree_nodes = [n for n, d in self.G.in_degree() if d <= max_in_degree]
+        print(f"Found {len(low_degree_nodes)} nodes with in-degree <= {max_in_degree}")
+        
+        # Group nodes by out-degree
+        out_degree_groups = defaultdict(list)  # noqa: F821
+        for node in low_degree_nodes:
+            out_degree = self.G.out_degree(node)
+            out_degree_groups[out_degree].append(node)
+        
+        # Sample proportionally from each out-degree group, prioritizing higher out-degrees
+        selected_nodes = []
+        total_nodes = len(low_degree_nodes)
+        print(f"Total nodes: {total_nodes}")
+        for out_degree, nodes in sorted(out_degree_groups.items(), reverse=True):
+            print(f"Out-degree: {out_degree}, Nodes: {len(nodes)}")
+            # Calculate how many nodes to sample from this group
+            group_size = len(nodes)
+            sample_size = int((group_size / total_nodes) * target_count)
+            
+            if sample_size > 0:
+                # Sample from this group
+                selected = random.sample(nodes, min(sample_size, len(nodes)))
+                selected_nodes.extend(selected)
+        
+        # Fill any remaining slots randomly
+        remaining = target_count - len(selected_nodes)
+        if remaining > 0:
+            remaining_nodes = [n for n in low_degree_nodes if n not in selected_nodes]
+            if remaining_nodes:
+                selected_nodes.extend(random.sample(remaining_nodes, min(remaining, len(remaining_nodes))))
+        
+        print(f"Selected {len(selected_nodes)} nodes using stratified sampling")
+        return selected_nodes[:target_count]
+    
     
     
     def get_bridge_nodes(self, max_in_degree=10):
@@ -1274,7 +1324,7 @@ def main():
 
         # visualizer.plot_cascade_results(bridge_results, removal_type="nodes", strategy="bridge-nodes")
         # plt.savefig(f'bridge_nodes_plot_{current_time}.png')
-        bridge_nodes = visualizer.get_bridge_nodes_parallel(max_in_degree=10)
+        bridge_nodes = visualizer.get_stratified_low_degree_nodes(max_in_degree=10)
         bridge_results = visualizer.simulate_bridge_failure(bridge_nodes)
 
         visualizer.plot_cascade_results(bridge_results, removal_type="nodes", strategy="bridge-nodes")
