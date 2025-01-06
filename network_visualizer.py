@@ -285,60 +285,60 @@ class NetworkVisualizer:
     #         results[metric_name] = impact
         
     #     return results
-    def analyze_directed_assortativity(self):
-        """
-        Compute assortativity for all combinations of in and out degrees.
-        Returns dictionary of coefficients and optionally creates visualization.
-        """
-        # Calculate all four types of degree assortativity
-        coefficients = {
-            'in-in': nx.degree_assortativity_coefficient(self.G, x='in', y='in'),
-            'in-out': nx.degree_assortativity_coefficient(self.G, x='in', y='out'),
-            'out-in': nx.degree_assortativity_coefficient(self.G, x='out', y='in'),
-            'out-out': nx.degree_assortativity_coefficient(self.G, x='out', y='out')
-        }
+    # def analyze_directed_assortativity(self):
+    #     """
+    #     Compute assortativity for all combinations of in and out degrees.
+    #     Returns dictionary of coefficients and optionally creates visualization.
+    #     """
+    #     # Calculate all four types of degree assortativity
+    #     coefficients = {
+    #         'in-in': nx.degree_assortativity_coefficient(self.G, x='in', y='in'),
+    #         'in-out': nx.degree_assortativity_coefficient(self.G, x='in', y='out'),
+    #         'out-in': nx.degree_assortativity_coefficient(self.G, x='out', y='in'),
+    #         'out-out': nx.degree_assortativity_coefficient(self.G, x='out', y='out')
+    #     }
         
-        # Print results
-        print("\nAssortativity Coefficients:")
-        for pair, coef in coefficients.items():
-            print(f"{pair}: {coef:.4f}")
+    #     # Print results
+    #     print("\nAssortativity Coefficients:")
+    #     for pair, coef in coefficients.items():
+    #         print(f"{pair}: {coef:.4f}")
         
-        # Get degree dictionaries
-        in_degrees = dict(self.G.in_degree())
-        out_degrees = dict(self.G.out_degree())
+    #     # Get degree dictionaries
+    #     in_degrees = dict(self.G.in_degree())
+    #     out_degrees = dict(self.G.out_degree())
         
-        # Create subplots for all degree correlations
-        fig, axes = plt.subplots(2, 2, figsize=(15, 15))
-        fig.suptitle('Degree Correlations in PyPI Network')
+    #     # Create subplots for all degree correlations
+    #     fig, axes = plt.subplots(2, 2, figsize=(15, 15))
+    #     fig.suptitle('Degree Correlations in PyPI Network')
         
-        # Plot settings
-        plot_settings = [
-            {'x': 'in', 'y': 'in', 'pos': (0,0), 'title': 'In-degree vs In-degree'},
-            {'x': 'in', 'y': 'out', 'pos': (0,1), 'title': 'In-degree vs Out-degree'},
-            {'x': 'out', 'y': 'in', 'pos': (1,0), 'title': 'Out-degree vs In-degree'},
-            {'x': 'out', 'y': 'out', 'pos': (1,1), 'title': 'Out-degree vs Out-degree'}
-        ]
+    #     # Plot settings
+    #     plot_settings = [
+    #         {'x': 'in', 'y': 'in', 'pos': (0,0), 'title': 'In-degree vs In-degree'},
+    #         {'x': 'in', 'y': 'out', 'pos': (0,1), 'title': 'In-degree vs Out-degree'},
+    #         {'x': 'out', 'y': 'in', 'pos': (1,0), 'title': 'Out-degree vs In-degree'},
+    #         {'x': 'out', 'y': 'out', 'pos': (1,1), 'title': 'Out-degree vs Out-degree'}
+    #     ]
         
-        for setting in plot_settings:
-            i, j = setting['pos']
-            x_deg = in_degrees if setting['x'] == 'in' else out_degrees
-            y_deg = in_degrees if setting['y'] == 'in' else out_degrees
+    #     for setting in plot_settings:
+    #         i, j = setting['pos']
+    #         x_deg = in_degrees if setting['x'] == 'in' else out_degrees
+    #         y_deg = in_degrees if setting['y'] == 'in' else out_degrees
             
-            # Get degrees for each edge
-            edge_degrees = [(x_deg[u], y_deg[v]) for u, v in self.G.edges()]
-            x, y = zip(*edge_degrees)
+    #         # Get degrees for each edge
+    #         edge_degrees = [(x_deg[u], y_deg[v]) for u, v in self.G.edges()]
+    #         x, y = zip(*edge_degrees)
             
-            # Create hexbin plot for better visualization of dense regions
-            axes[i,j].hexbin(x, y, gridsize=30, bins='log', cmap='YlOrRd')
-            axes[i,j].set_xscale('log')
-            axes[i,j].set_yscale('log')
-            axes[i,j].set_xlabel(f'{setting["x"]}-degree')
-            axes[i,j].set_ylabel(f'{setting["y"]}-degree')
-            axes[i,j].set_title(f'{setting["title"]}\nr = {coefficients[f"{setting["x"]}-{setting["y"]}"]:.4f}')
-            axes[i,j].grid(True)
+    #         # Create hexbin plot for better visualization of dense regions
+    #         axes[i,j].hexbin(x, y, gridsize=30, bins='log', cmap='YlOrRd')
+    #         axes[i,j].set_xscale('log')
+    #         axes[i,j].set_yscale('log')
+    #         axes[i,j].set_xlabel(f'{setting["x"]}-degree')
+    #         axes[i,j].set_ylabel(f'{setting["y"]}-degree')
+    #         axes[i,j].set_title(f'{setting["title"]}\nr = {coefficients[f"{setting["x"]}-{setting["y"]}"]:.4f}')
+    #         axes[i,j].grid(True)
         
-        plt.tight_layout()
-        return coefficients
+    #     plt.tight_layout()
+    #     return coefficients
     def analyze_assortativity(self):
         """Compute and visualize the assortativity of the graph."""
         # Compute assortativity coefficient
