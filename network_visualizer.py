@@ -1684,7 +1684,7 @@ def plot_separate_in_out_degrees(G, ba_graph, er_graph):
 
 
 # Main Execution
-visualizer = NetworkVisualizer('final_csv/pypi_nodes_20241216_081109.csv', 'final_csv/pypi_edges_20241216_081109.csv')
+visualizer = NetworkVisualizer('pypi_nodes_20241216_081109.csv', 'pypi_edges_20241216_081109.csv')
 pypi_graph = visualizer.G
 # Check a sample of edges
 logging.info("Sample edges (directed):", list(pypi_graph.edges(data=True))[:5])
