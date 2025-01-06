@@ -854,6 +854,55 @@ class NetworkVisualizer:
         
         logging.info(f"Found {len(bridge_nodes)} bridge nodes with in-degree <= {max_in_degree}")
         return bridge_nodes
+    
+    def get_bridge_nodes_parallel(self, max_in_degree=10, num_workers=4):
+        """
+        Parallel implementation of bridge node detection using multiprocessing.
+        
+        Parameters:
+            max_in_degree (int): Maximum in-degree threshold
+            num_workers (int): Number of parallel workers
+            
+        Returns:
+            List of bridge nodes sorted by betweenness
+        """
+        import multiprocessing as mp
+        from itertools import islice
+        
+        def chunk_betweenness(nodes):
+            subgraph = self.G.subgraph(nodes)
+            return nx.current_flow_betweenness_centrality(subgraph)
+        
+        # Get low degree nodes
+        low_degree_nodes = list(n for n, d in self.G.in_degree() if d <= max_in_degree)
+        
+        if not low_degree_nodes:
+            return []
+            
+        # Split nodes into chunks for parallel processing
+        chunk_size = len(low_degree_nodes) // num_workers
+        chunks = [
+            list(islice(low_degree_nodes, i, i + chunk_size))
+            for i in range(0, len(low_degree_nodes), chunk_size)
+        ]
+        
+        # Calculate betweenness in parallel
+        with mp.Pool(num_workers) as pool:
+            chunk_results = pool.map(chunk_betweenness, chunks)
+        
+        # Combine results
+        betweenness = {}
+        for result in chunk_results:
+            betweenness.update(result)
+        
+        # Sort and return top nodes
+        bridge_nodes = sorted(
+            [(n, s) for n, s in betweenness.items()],
+            key=lambda x: x[1],
+            reverse=True
+        )
+        
+        return [node for node, _ in bridge_nodes[:2502]]
 
     def simulate_bridge_failure(self, bridge_nodes):
         """
@@ -1059,11 +1108,11 @@ class NetworkVisualizer:
 
 def main():
     # Create visualizer
-    visualizer = NetworkVisualizer('pypi_nodes_20241216_081109.csv', 'pypi_edges_20241216_081109.csv')
+    # visualizer = NetworkVisualizer('pypi_nodes_20241216_081109.csv', 'pypi_edges_20241216_081109.csv')
     
     # Generate all plots
     # Print network statistics first
-    visualizer.print_network_stats()
+    # visualizer.print_network_stats()
     
     # Try different k-core values
     # for k in [2, 3, 4, 5]:
@@ -1110,7 +1159,7 @@ def main():
 
         # random_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="random")
 
-        results = visualizer.simulate_random_edge_removal(n_remove=n_remove)
+        # results = visualizer.simulate_random_edge_removal(n_remove=n_remove)
 
     #     # targeted attack: rich nodes
     #     rich_club_nodes = visualizer.get_rich_club_nodes(degree_type="in", degree_threshold=50)
@@ -1123,8 +1172,8 @@ def main():
     finally:
         #     # Get the current date and time
         current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        visualizer.plot_cascade_results(results, removal_type="edges", strategy="random")
-        plt.savefig(f'edge_removal_{current_time}.png')
+        # visualizer.plot_cascade_results(results, removal_type="edges", strategy="random")
+        # plt.savefig(f'edge_removal_{current_time}.png')
         
     #     # Step 3: Plot the results
     #     visualizer.plot_cascade_results(results, removal_type="nodes", strategy="rich-club")
@@ -1231,6 +1280,92 @@ def generate_synthetic_networks_directed(original_graph, num_nodes):
         for target in selected_targets:
             ba_graph.add_edge(source, target)
     
+    return ba_graph, er_graph
+
+def generate_synthetic_networks_directed_bidirectional(original_graph, num_nodes):
+    """
+    Generate directed synthetic networks with both in and out degree preferential attachment.
+    This creates a more realistic model where nodes can connect based on both in and out degrees.
+    
+    Parameters:
+        original_graph: NetworkX graph to base parameters on
+        num_nodes: Number of nodes for synthetic networks
+        
+    Returns:
+        ba_graph: Directed Barabási-Albert graph with in/out degree attachment
+        er_graph: Directed Erdős-Rényi graph
+    """
+    logging.info("Generating synthetic networks...")
+    
+    # Calculate average degrees
+    avg_in_degree = int(np.mean([deg for _, deg in original_graph.in_degree()]))
+    avg_out_degree = int(np.mean([deg for _, deg in original_graph.out_degree()]))
+    m = max(avg_in_degree, avg_out_degree)
+    
+    # Generate ER graph
+    logging.info("Generating ER model...")
+    probability = avg_in_degree / num_nodes
+    er_graph = nx.fast_gnp_random_graph(n=num_nodes, p=probability, directed=True)
+    
+    # Generate BA graph with both in and out degree preferential attachment
+    logging.info("Generating BA model with in/out degree attachment...")
+    ba_graph = nx.DiGraph()
+    
+    # Initialize with a complete graph of m nodes
+    for i in range(m):
+        for j in range(m):
+            if i != j:
+                ba_graph.add_edge(i, j)
+    logging.info("Initialized with complete graph.")
+    
+    # Process nodes in batches
+    batch_size = 1000
+    for batch_start in range(m, num_nodes, batch_size):
+        batch_end = min(batch_start + batch_size, num_nodes)
+        batch_size_actual = batch_end - batch_start
+        
+        if batch_start % 1000 == 0:
+            logging.info(f"Processing nodes {batch_start} to {batch_end}...")
+        
+        # Get current network state
+        existing_nodes = np.array(list(ba_graph.nodes()))
+        
+        # Calculate both in and out degree probabilities
+        in_degrees = np.array([ba_graph.in_degree(n) + 1 for n in existing_nodes])
+        out_degrees = np.array([ba_graph.out_degree(n) + 1 for n in existing_nodes])
+        
+        # Combine in and out degree probabilities
+        p_in = in_degrees / in_degrees.sum()
+        p_out = out_degrees / out_degrees.sum()
+        p_combined = (p_in + p_out) / 2  # Equal weight to in and out degrees
+        
+        # Generate edges for this batch
+        new_edges = []
+        for source in range(batch_start, batch_end):
+            # Add edges based on combined probability
+            targets = np.random.choice(
+                existing_nodes,
+                size=min(m, len(existing_nodes)),
+                replace=False,
+                p=p_combined
+            )
+            new_edges.extend((source, target) for target in targets)
+            
+            # Occasionally add reverse edges to create more realistic bidirectional connections
+            if np.random.random() < 0.3:  # 30% chance of reverse edges
+                reverse_targets = np.random.choice(
+                    existing_nodes,
+                    size=min(m//2, len(existing_nodes)),  # Fewer reverse edges
+                    replace=False,
+                    p=p_combined
+                )
+                new_edges.extend((target, source) for target in reverse_targets)
+        
+        # Add all nodes and edges from this batch
+        ba_graph.add_nodes_from(range(batch_start, batch_end))
+        ba_graph.add_edges_from(new_edges)
+    
+    logging.info("Synthetic networks generated.")
     return ba_graph, er_graph
 
 # def plot_degree_comparison(original_graph, ba_graph, er_graph):
@@ -1545,25 +1680,25 @@ def plot_separate_in_out_degrees(G, ba_graph, er_graph):
     plt.grid(True)
     plt.tight_layout()
     plt.savefig("Out_Degree_Distribution.png", dpi=300)
-    plt.show()
+    # plt.show()
 
 
 # Main Execution
-# visualizer = NetworkVisualizer('final_csv/pypi_nodes_20241216_081109.csv', 'final_csv/pypi_edges_20241216_081109.csv')
-# pypi_graph = visualizer.G
-# # Check a sample of edges
-# print("Sample edges (directed):", list(pypi_graph.edges(data=True))[:5])
-# # Try accessing in_degree directly
+visualizer = NetworkVisualizer('final_csv/pypi_nodes_20241216_081109.csv', 'final_csv/pypi_edges_20241216_081109.csv')
+pypi_graph = visualizer.G
+# Check a sample of edges
+logging.info("Sample edges (directed):", list(pypi_graph.edges(data=True))[:5])
+# Try accessing in_degree directly
 
-# num_nodes = pypi_graph.number_of_nodes()
+num_nodes = pypi_graph.number_of_nodes()
 
 # # Generate synthetic networks
-# ba_graph, er_graph = generate_synthetic_networks(pypi_graph, num_nodes)
-# ba_graph, er_graph = generate_synthetic_networks_directed(pypi_graph, num_nodes)
+ba_graph, er_graph = generate_synthetic_networks(pypi_graph, num_nodes)
+ba_graph, er_graph = generate_synthetic_networks_directed_bidirectional(pypi_graph, num_nodes)
 
 # # Plot in-degree and out-degree distributions
 # try:
 #     plot_degree_distributions(pypi_graph, ba_graph, er_graph)
 # except Exception as e:
 #     print(f"Error during degree distribution plotting: {e}")
-# plot_separate_in_out_degrees(pypi_graph, ba_graph, er_graph)
+plot_separate_in_out_degrees(pypi_graph, ba_graph, er_graph)
