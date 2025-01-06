@@ -14,6 +14,17 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 
+def _chunk_betweenness(graph_data):
+    """
+    Standalone function for parallel betweenness calculation.
+    Must be at module level for pickling to work.
+    """
+    nodes, edges = graph_data
+    G = nx.DiGraph()
+    G.add_nodes_from(nodes)
+    G.add_edges_from(edges)
+    return nx.betweenness_centrality(G)
+
 class NetworkVisualizer:
     def __init__(self, nodes_file, edges_file):
         self.nodes_df = pd.read_csv(nodes_file)
@@ -823,6 +834,72 @@ class NetworkVisualizer:
         
         print("Weak-tie failure simulation completed.")
         return results
+    def get_bridge_nodes_parallel(self, max_in_degree=10, num_workers=4):
+            """
+            Parallel implementation of bridge node detection using multiprocessing.
+            
+            Parameters:
+                max_in_degree (int): Maximum in-degree threshold
+                num_workers (int): Number of parallel workers
+                
+            Returns:
+                List of bridge nodes sorted by betweenness
+            """
+            import multiprocessing as mp
+            from itertools import islice
+            logging.info("Detecting bridge nodes in parallel...")
+            # Get low degree nodes
+            low_degree_nodes = list(n for n, d in self.G.in_degree() if d <= max_in_degree)
+            
+            if not low_degree_nodes:
+                return []
+            
+            logging.info(f"Found {len(low_degree_nodes)} low-degree nodes.")
+            # Create subgraph of low degree nodes
+            subgraph = self.G.subgraph(low_degree_nodes)
+            all_edges = list(subgraph.edges())
+            logging.info(f"Subgraph created with {len(all_edges)} edges.")
+            
+            logging.info(f"Splitting nodes into {num_workers} chunks...")
+            # Split nodes into chunks for parallel processing
+            chunk_size = len(low_degree_nodes) // num_workers
+            node_chunks = [
+                list(islice(low_degree_nodes, i, i + chunk_size))
+                for i in range(0, len(low_degree_nodes), chunk_size)
+            ]
+            
+            # Prepare data for parallel processing
+            # Each chunk contains (nodes, edges) tuple
+            chunk_data = []
+            logging.info(f"Processing {len(node_chunks)} chunks in parallel...")
+            for nodes in node_chunks:
+                # Get edges that involve nodes in this chunk
+                chunk_edges = [(u, v) for u, v in all_edges 
+                            if u in nodes or v in nodes]
+                chunk_data.append((nodes, chunk_edges))
+            # Calculate betweenness in parallel
+            with mp.Pool(num_workers) as pool:
+                chunk_results = pool.map(_chunk_betweenness, chunk_data)
+            
+            logging.info("Combining results...")
+            # Combine results
+            betweenness = {}
+            for result in chunk_results:
+                for node, score in result.items():
+                    if node in betweenness:
+                        betweenness[node] = max(betweenness[node], score)
+                    else:
+                        betweenness[node] = score
+            logging.info("Results combined.")
+            # Sort and return top nodes
+            bridge_nodes = sorted(
+                [(n, s) for n, s in betweenness.items()],
+                key=lambda x: x[1],
+                reverse=True
+            )
+            logging.info(f"Found {len(bridge_nodes)} bridge nodes with in-degree <= {max_in_degree}")
+            return [node for node, _ in bridge_nodes[:2502]]
+    
     
     def get_bridge_nodes(self, max_in_degree=10):
         """
@@ -855,54 +932,54 @@ class NetworkVisualizer:
         logging.info(f"Found {len(bridge_nodes)} bridge nodes with in-degree <= {max_in_degree}")
         return bridge_nodes
     
-    def get_bridge_nodes_parallel(self, max_in_degree=10, num_workers=4):
-        """
-        Parallel implementation of bridge node detection using multiprocessing.
+    # def get_bridge_nodes_parallel(self, max_in_degree=10, num_workers=4):
+    #     """
+    #     Parallel implementation of bridge node detection using multiprocessing.
         
-        Parameters:
-            max_in_degree (int): Maximum in-degree threshold
-            num_workers (int): Number of parallel workers
+    #     Parameters:
+    #         max_in_degree (int): Maximum in-degree threshold
+    #         num_workers (int): Number of parallel workers
             
-        Returns:
-            List of bridge nodes sorted by betweenness
-        """
-        import multiprocessing as mp
-        from itertools import islice
+    #     Returns:
+    #         List of bridge nodes sorted by betweenness
+    #     """
+    #     import multiprocessing as mp
+    #     from itertools import islice
         
-        def chunk_betweenness(nodes):
-            subgraph = self.G.subgraph(nodes)
-            return nx.current_flow_betweenness_centrality(subgraph)
+    #     def chunk_betweenness(nodes):
+    #         subgraph = self.G.subgraph(nodes)
+    #         return nx.current_flow_betweenness_centrality(subgraph)
         
-        # Get low degree nodes
-        low_degree_nodes = list(n for n, d in self.G.in_degree() if d <= max_in_degree)
+    #     # Get low degree nodes
+    #     low_degree_nodes = list(n for n, d in self.G.in_degree() if d <= max_in_degree)
         
-        if not low_degree_nodes:
-            return []
+    #     if not low_degree_nodes:
+    #         return []
             
-        # Split nodes into chunks for parallel processing
-        chunk_size = len(low_degree_nodes) // num_workers
-        chunks = [
-            list(islice(low_degree_nodes, i, i + chunk_size))
-            for i in range(0, len(low_degree_nodes), chunk_size)
-        ]
+    #     # Split nodes into chunks for parallel processing
+    #     chunk_size = len(low_degree_nodes) // num_workers
+    #     chunks = [
+    #         list(islice(low_degree_nodes, i, i + chunk_size))
+    #         for i in range(0, len(low_degree_nodes), chunk_size)
+    #     ]
         
-        # Calculate betweenness in parallel
-        with mp.Pool(num_workers) as pool:
-            chunk_results = pool.map(chunk_betweenness, chunks)
+    #     # Calculate betweenness in parallel
+    #     with mp.Pool(num_workers) as pool:
+    #         chunk_results = pool.map(chunk_betweenness, chunks)
         
-        # Combine results
-        betweenness = {}
-        for result in chunk_results:
-            betweenness.update(result)
+    #     # Combine results
+    #     betweenness = {}
+    #     for result in chunk_results:
+    #         betweenness.update(result)
         
-        # Sort and return top nodes
-        bridge_nodes = sorted(
-            [(n, s) for n, s in betweenness.items()],
-            key=lambda x: x[1],
-            reverse=True
-        )
+    #     # Sort and return top nodes
+    #     bridge_nodes = sorted(
+    #         [(n, s) for n, s in betweenness.items()],
+    #         key=lambda x: x[1],
+    #         reverse=True
+    #     )
         
-        return [node for node, _ in bridge_nodes[:2502]]
+    #     return [node for node, _ in bridge_nodes[:2502]]
 
     def simulate_bridge_failure(self, bridge_nodes):
         """
@@ -1108,11 +1185,11 @@ class NetworkVisualizer:
 
 def main():
     # Create visualizer
-    # visualizer = NetworkVisualizer('pypi_nodes_20241216_081109.csv', 'pypi_edges_20241216_081109.csv')
+    visualizer = NetworkVisualizer('pypi_nodes_20241216_081109.csv', 'pypi_edges_20241216_081109.csv')
     
     # Generate all plots
     # Print network statistics first
-    # visualizer.print_network_stats()
+    visualizer.print_network_stats()
     
     # Try different k-core values
     # for k in [2, 3, 4, 5]:
@@ -1169,6 +1246,7 @@ def main():
       #     #targeted attack bridge nodes
         # bridge_nodes = visualizer.get_bridge_nodes(max_in_degree=10)
         # bridge_results = visualizer.simulate_bridge_failure(bridge_nodes)
+
     finally:
         #     # Get the current date and time
         current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -1196,6 +1274,11 @@ def main():
 
         # visualizer.plot_cascade_results(bridge_results, removal_type="nodes", strategy="bridge-nodes")
         # plt.savefig(f'bridge_nodes_plot_{current_time}.png')
+        bridge_nodes = visualizer.get_bridge_nodes_parallel(max_in_degree=10)
+        bridge_results = visualizer.simulate_bridge_failure(bridge_nodes)
+
+        visualizer.plot_cascade_results(bridge_results, removal_type="nodes", strategy="bridge-nodes")
+        plt.savefig(f'bridge_nodes_plot_{current_time}.png')
 
     
     # Save plots
@@ -1684,21 +1767,21 @@ def plot_separate_in_out_degrees(G, ba_graph, er_graph):
 
 
 # Main Execution
-visualizer = NetworkVisualizer('pypi_nodes_20241216_081109.csv', 'pypi_edges_20241216_081109.csv')
-pypi_graph = visualizer.G
-# Check a sample of edges
-logging.info("Sample edges (directed):", list(pypi_graph.edges(data=True))[:5])
-# Try accessing in_degree directly
+# visualizer = NetworkVisualizer('pypi_nodes_20241216_081109.csv', 'pypi_edges_20241216_081109.csv')
+# pypi_graph = visualizer.G
+# # Check a sample of edges
+# logging.info("Sample edges (directed):", list(pypi_graph.edges(data=True))[:5])
+# # Try accessing in_degree directly
 
-num_nodes = pypi_graph.number_of_nodes()
+# num_nodes = pypi_graph.number_of_nodes()
 
-# # Generate synthetic networks
-ba_graph, er_graph = generate_synthetic_networks(pypi_graph, num_nodes)
-ba_graph, er_graph = generate_synthetic_networks_directed_bidirectional(pypi_graph, num_nodes)
+# # # Generate synthetic networks
+# ba_graph, er_graph = generate_synthetic_networks(pypi_graph, num_nodes)
+# ba_graph, er_graph = generate_synthetic_networks_directed_bidirectional(pypi_graph, num_nodes)
 
-# # Plot in-degree and out-degree distributions
-# try:
-#     plot_degree_distributions(pypi_graph, ba_graph, er_graph)
-# except Exception as e:
-#     print(f"Error during degree distribution plotting: {e}")
-plot_separate_in_out_degrees(pypi_graph, ba_graph, er_graph)
+# # # Plot in-degree and out-degree distributions
+# # try:
+# #     plot_degree_distributions(pypi_graph, ba_graph, er_graph)
+# # except Exception as e:
+# #     print(f"Error during degree distribution plotting: {e}")
+# plot_separate_in_out_degrees(pypi_graph, ba_graph, er_graph)
