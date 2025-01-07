@@ -51,56 +51,6 @@ class NetworkVisualizer:
         logging.info(f"Network created with nodes: {G.number_of_nodes()} and edges: {G.number_of_edges()}")
         return G
 
-    # def plot_network_structure(self, k_core=2, max_nodes=1000):
-    #     """Plot network structure with node limit for better visualization"""
-    #     plt.figure(figsize=(15, 15))
-        
-    #     # Create a copy and remove self-loops
-    #     G_clean = self.G.copy()
-    #     G_clean.remove_edges_from(nx.selfloop_edges(G_clean))
-        
-    #     # Filter to k-core
-    #     core = nx.k_core(G_clean, k_core)
-    #     print(f"Removed {len(G_clean.nodes) - len(core.nodes)} nodes in k-core {k_core}")
-        
-    #     # Further filter by in-degree to get most important nodes
-    #     in_degrees = dict(core.in_degree())
-    #     sorted_nodes = sorted(in_degrees.items(), key=lambda x: x[1], reverse=True)[:max_nodes]
-    #     nodes_to_keep = [node for node, degree in sorted_nodes]
-        
-    #     # Create subgraph of important nodes
-    #     subplot = core.subgraph(nodes_to_keep)
-    #     print(f"Plotting network with {len(subplot.nodes())} nodes and {len(subplot.edges())} edges")
-        
-    #     try:
-    #         print("Starting layout calculation...")
-    #         # Use faster layout for large graphs
-    #         if len(subplot) > 100:
-    #             pos = nx.kamada_kawai_layout(subplot)
-    #         else:
-    #             pos = nx.spring_layout(subplot, k=0.5, iterations=50)
-            
-    #         # Node sizes based on in-degree
-    #         node_sizes = [subplot.in_degree(n) * 50 + 100 for n in subplot.nodes()]
-            
-    #         print("Layout calculated. Starting plotting...")
-            
-    #         # Draw network
-    #         nx.draw(subplot, pos,
-    #                 node_size=node_sizes,
-    #                 node_color='lightblue',
-    #                 edge_color='gray',
-    #                 alpha=0.6,
-    #                 with_labels=True,
-    #                 font_size=8)
-            
-    #         plt.title(f"PyPI Dependency Network - Top {len(subplot)} packages (k-core={k_core})")
-    #         print("Plotting completed.")
-    #         return plt.gcf()
-        
-    #     except Exception as e:
-    #         print(f"Error in plotting: {str(e)}")
-    #         return None
     def plot_network_structure(self, k_core=2, max_nodes=100, min_degree=20):
         """Plot network structure with better readability"""
         plt.figure(figsize=(20, 20), facecolor='white')
@@ -248,97 +198,6 @@ class NetworkVisualizer:
         plt.tight_layout()
         return plt.gcf()
 
-    # def simulate_cascade_failure(self, n_remove=10):
-    #     """Simulate cascade failure by removing top nodes"""
-    #     G_copy = self.G.copy()
-        
-    #     # Get top nodes by different metrics
-    #     pagerank = nx.pagerank(G_copy)
-    #     hubs, authorities = nx.hits(G_copy)
-        
-    #     metrics = {
-    #         'PageRank': sorted(pagerank.items(), key=lambda x: x[1], reverse=True),
-    #         'Hub Score': sorted(hubs.items(), key=lambda x: x[1], reverse=True),
-    #         'Authority Score': sorted(authorities.items(), key=lambda x: x[1], reverse=True)
-    #     }
-        
-    #     results = {}
-        
-    #     for metric_name, sorted_nodes in metrics.items():
-    #         G_test = G_copy.copy()
-    #         impact = []
-            
-    #         # Remove top nodes one by one
-    #         for i in range(n_remove):
-    #             if i < len(sorted_nodes):
-    #                 node = sorted_nodes[i][0]
-    #                 G_test.remove_node(node)
-                    
-    #                 # Measure impact
-    #                 largest_cc = len(max(nx.strongly_connected_components(G_test), key=len))
-    #                 impact.append({
-    #                     'nodes_removed': i+1,
-    #                     'largest_component': largest_cc,
-    #                     'remaining_edges': G_test.number_of_edges()
-    #                 })
-                    
-    #         results[metric_name] = impact
-        
-    #     return results
-    # def analyze_directed_assortativity(self):
-    #     """
-    #     Compute assortativity for all combinations of in and out degrees.
-    #     Returns dictionary of coefficients and optionally creates visualization.
-    #     """
-    #     # Calculate all four types of degree assortativity
-    #     coefficients = {
-    #         'in-in': nx.degree_assortativity_coefficient(self.G, x='in', y='in'),
-    #         'in-out': nx.degree_assortativity_coefficient(self.G, x='in', y='out'),
-    #         'out-in': nx.degree_assortativity_coefficient(self.G, x='out', y='in'),
-    #         'out-out': nx.degree_assortativity_coefficient(self.G, x='out', y='out')
-    #     }
-        
-    #     # Print results
-    #     print("\nAssortativity Coefficients:")
-    #     for pair, coef in coefficients.items():
-    #         print(f"{pair}: {coef:.4f}")
-        
-    #     # Get degree dictionaries
-    #     in_degrees = dict(self.G.in_degree())
-    #     out_degrees = dict(self.G.out_degree())
-        
-    #     # Create subplots for all degree correlations
-    #     fig, axes = plt.subplots(2, 2, figsize=(15, 15))
-    #     fig.suptitle('Degree Correlations in PyPI Network')
-        
-    #     # Plot settings
-    #     plot_settings = [
-    #         {'x': 'in', 'y': 'in', 'pos': (0,0), 'title': 'In-degree vs In-degree'},
-    #         {'x': 'in', 'y': 'out', 'pos': (0,1), 'title': 'In-degree vs Out-degree'},
-    #         {'x': 'out', 'y': 'in', 'pos': (1,0), 'title': 'Out-degree vs In-degree'},
-    #         {'x': 'out', 'y': 'out', 'pos': (1,1), 'title': 'Out-degree vs Out-degree'}
-    #     ]
-        
-    #     for setting in plot_settings:
-    #         i, j = setting['pos']
-    #         x_deg = in_degrees if setting['x'] == 'in' else out_degrees
-    #         y_deg = in_degrees if setting['y'] == 'in' else out_degrees
-            
-    #         # Get degrees for each edge
-    #         edge_degrees = [(x_deg[u], y_deg[v]) for u, v in self.G.edges()]
-    #         x, y = zip(*edge_degrees)
-            
-    #         # Create hexbin plot for better visualization of dense regions
-    #         axes[i,j].hexbin(x, y, gridsize=30, bins='log', cmap='YlOrRd')
-    #         axes[i,j].set_xscale('log')
-    #         axes[i,j].set_yscale('log')
-    #         axes[i,j].set_xlabel(f'{setting["x"]}-degree')
-    #         axes[i,j].set_ylabel(f'{setting["y"]}-degree')
-    #         axes[i,j].set_title(f'{setting["title"]}\nr = {coefficients[f"{setting["x"]}-{setting["y"]}"]:.4f}')
-    #         axes[i,j].grid(True)
-        
-    #     plt.tight_layout()
-    #     return coefficients
     def analyze_assortativity(self):
         """Compute and visualize the assortativity of the graph."""
         # Compute assortativity coefficient
@@ -364,56 +223,6 @@ class NetworkVisualizer:
         plt.show()
         
         return assortativity
-
-    # def plot_rich_club(self, degree_type="in"):
-    #     """
-    #     Plot rich-club coefficient vs degree for in-degree or out-degree.
-        
-    #     Parameters:
-    #         degree_type (str): "in" for in-degree, "out" for out-degree.
-    #     """
-    #     # Choose degree type
-    #     if degree_type == "in":
-    #         degree_func = self.G.in_degree
-    #         title_degree = "In-Degree"
-    #     elif degree_type == "out":
-    #         degree_func = self.G.out_degree
-    #         title_degree = "Out-Degree"
-    #     else:
-    #         raise ValueError("degree_type must be 'in' or 'out'.")
-
-    #     # Calculate rich club coefficients
-    #     degrees = range(5, 50, 5)
-    #     coeffs = []
-        
-    #     for k in degrees:
-    #         print(f"Calculating for {title_degree} > {k}")
-    #         # Get nodes with degree > k
-    #         high_degree_nodes = [n for n, d in degree_func() if d > k]
-            
-    #         if len(high_degree_nodes) < 2:
-    #             coeffs.append(0)
-    #             continue
-            
-    #         # Count edges between high-degree nodes
-    #         edges_between = sum(1 for u, v in self.G.edges() 
-    #                             if u in high_degree_nodes and v in high_degree_nodes)
-            
-    #         # Maximum possible edges (directed graph: n * (n-1))
-    #         max_edges = len(high_degree_nodes) * (len(high_degree_nodes) - 1)
-            
-    #         # Compute rich-club coefficient
-    #         coeffs.append(edges_between / max_edges if max_edges > 0 else 0)
-
-    #     # Plot the results
-    #     plt.figure(figsize=(10, 6))
-    #     plt.plot(degrees[:len(coeffs)], coeffs, 'bo-')
-    #     plt.xscale('log')
-    #     plt.xlabel(f'{title_degree} Threshold (k)')
-    #     plt.ylabel('Rich Club Coefficient')
-    #     plt.title(f'Rich Club Coefficient: {title_degree}')
-    #     plt.grid(True)
-    #     return plt.gcf()
 
     def plot_rich_club(self, degree_type="in", n_random=10):
         """
@@ -640,29 +449,6 @@ class NetworkVisualizer:
         
         return plt.gcf()
 
-    # def plot_degree_distribution(self):
-    #     """Plot in-degree and out-degree distributions"""
-    #     print("Plotting degree distributions...")
-    #     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
-        
-    #     # In-degree
-    #     in_degrees = [d for n, d in self.G.in_degree()]
-    #     sns.histplot(in_degrees, ax=ax1, log_scale=(True, True))
-    #     ax1.set_title('In-Degree Distribution')
-    #     ax1.set_xlabel('In-Degree (log)')
-    #     ax1.set_ylabel('Count (log)')
-        
-    #     # Out-degree
-    #     out_degrees = [d for n, d in self.G.out_degree()]
-    #     sns.histplot(out_degrees, ax=ax2, log_scale=(True, True))
-    #     ax2.set_title('Out-Degree Distribution')
-    #     ax2.set_xlabel('Out-Degree (log)')
-    #     ax2.set_ylabel('Count (log)')
-        
-    #     plt.tight_layout()
-    #     print("Degree distributions plotted.")
-    #     return plt.gcf()
-
     def plot_degree_distribution(self):
         def power_law(x, a, b):
             """Power law function for curve fitting."""
@@ -882,64 +668,363 @@ class NetworkVisualizer:
 
         return results
     
-    def get_rich_club_nodes(self, degree_type="in", degree_threshold=10):
+    def simulate_random_edge_removal_node_degree(self, n_remove=2502):
         """
-        Get nodes belonging to the rich club based on a degree threshold.
+        Simulate cascading failure by removing edges randomly from nodes with in-degree > 0.
         
         Parameters:
-            degree_type (str): "in" for in-degree, "out" for out-degree.
-            degree_threshold (int): Minimum degree for rich-club membership.
+            n_remove (int): Number of edges to remove (default matches node removal count)
         
         Returns:
-            List of rich-club nodes.
+            List of dictionaries containing impact metrics at each step
         """
-        if degree_type == "in":
-            degree_func = self.G.in_degree
-        elif degree_type == "out":
-            degree_func = self.G.out_degree
-        else:
-            raise ValueError("degree_type must be 'in' or 'out'.")
-        
-        rich_club_nodes = [n for n, d in degree_func() if d > degree_threshold]
-        print(f"Found {len(rich_club_nodes)} rich-club nodes with {degree_type}-degree > {degree_threshold}")
-        return rich_club_nodes
-
-    
-    def simulate_rich_club_failure(self, rich_club_nodes):
-        """
-        Simulate cascading failures by removing rich-club nodes.
-        
-        Parameters:
-            rich_club_nodes (list): List of nodes in the rich club.
-        
-        Returns:
-            List of impact metrics after each removal.
-        """
-        print("Simulating rich-club failure...")
+        print("Simulating random edge removal...")
         G_copy = self.G.copy()
+        initial_nodes = G_copy.number_of_nodes()
+        initial_edges = G_copy.number_of_edges()
+        
+        # Only consider edges where target node has in-degree > 0
+        valid_edges = [(u, v) for u, v in G_copy.edges() 
+                    if G_copy.in_degree(v) > 0]
+        np.random.shuffle(valid_edges)  # Randomize edge removal order
+
+        results = []
+        for i in range(min(n_remove, len(valid_edges))):
+            # Remove the edge and identify affected nodes
+            edge = valid_edges[i]
+            source, target = edge
+            G_copy.remove_edge(source, target)
+            
+            # Find nodes affected by this edge removal through dependency chain
+            affected_nodes = set()
+            stack = [target]  # Start with the target node of removed edge
+            while stack:
+                current = stack.pop()
+                if current not in affected_nodes:
+                    affected_nodes.add(current)
+                    # Add nodes that depend on current node to stack
+                    stack.extend([n for n in G_copy.predecessors(current) 
+                                if n not in affected_nodes])
+
+            # Measure impact
+            if G_copy.number_of_nodes() > 0:
+                largest_wcc = len(max(nx.weakly_connected_components(G_copy), key=len))
+                relative_size = largest_wcc / initial_nodes
+                components = nx.number_weakly_connected_components(G_copy)
+                remaining_edges = G_copy.number_of_edges()
+            else:
+                largest_wcc = 0
+                relative_size = 0
+                components = 0
+                remaining_edges = 0
+
+            results.append({
+                "edges_removed": i + 1,
+                "nodes_affected": len(affected_nodes),
+                "cascade_multiplier": len(affected_nodes) / (i + 1),
+                "largest_component_size": largest_wcc,
+                "relative_size": relative_size,
+                "num_components": components,
+                "remaining_edges": remaining_edges
+            })
+
+            if i % 100 == 0:
+                print(f"Removed edge {i+1}, affected {len(affected_nodes)} nodes")
+
+        print(f"Completed random edge removal simulation after removing {len(results)} edges")
+        return results
+
+    def simulate_cascade_failure_weak_node_degree(self, n_remove=2502, strategy="pagerank"):
+        """
+        Simulate cascade failure by removing nodes based on strategy, only considering
+        nodes with in-degree > 0.
+        
+        Parameters:
+        - n_remove: Number of nodes to remove
+        - strategy: "pagerank", "hubs", "authorities", or "random"
+        
+        Returns:
+        - results: List of dictionaries with impact metrics at each step
+        """
+        print(f"Simulating cascade failure ({strategy})...")
+        G_copy = self.G.copy()
+        initial_nodes = G_copy.number_of_nodes()
+        initial_edges = G_copy.number_of_edges()
+
+        # Get nodes with in-degree > 0
+        valid_nodes = [n for n in G_copy.nodes() if G_copy.in_degree(n) > 0]
+        
+        # Create subgraph of valid nodes for centrality calculations
+        valid_graph = G_copy.subgraph(valid_nodes)
+
+        # Compute centrality metrics based on strategy
+        if strategy == "pagerank":
+            centrality = nx.pagerank(valid_graph)
+        elif strategy == "hubs":
+            hubs, _ = nx.hits(valid_graph)
+            centrality = hubs
+        elif strategy == "authorities":
+            _, authorities = nx.hits(valid_graph)
+            centrality = authorities
+        elif strategy == "random":
+            centrality = {node: random.random() for node in valid_nodes}
+        else:
+            raise ValueError("Invalid strategy")
+
+        # Sort nodes by centrality
+        sorted_nodes = sorted(centrality.items(), key=lambda x: x[1], reverse=True)
         results = []
 
-        for i, node in enumerate(rich_club_nodes):
-            if node in G_copy:
-                G_copy.remove_node(node)
+        for i in range(min(n_remove, len(sorted_nodes))):
+            node = sorted_nodes[i][0]
+            if node not in G_copy:
+                continue
 
-                # Measure impact
-                largest_cc = len(max(nx.strongly_connected_components(G_copy), key=len))
-                num_components = nx.number_strongly_connected_components(G_copy)
+            # Find cascade effect
+            affected_nodes = set()
+            stack = [node]
+            while stack:
+                current = stack.pop()
+                if current not in affected_nodes:
+                    affected_nodes.add(current)
+                    stack.extend([n for n in G_copy.predecessors(current) 
+                                if n not in affected_nodes])
+
+            # Remove affected nodes
+            G_copy.remove_nodes_from(affected_nodes)
+
+            # Measure impact
+            if G_copy.number_of_nodes() > 0:
+                largest_wcc = len(max(nx.weakly_connected_components(G_copy), key=len))
+                relative_size = largest_wcc / initial_nodes
+                components = nx.number_weakly_connected_components(G_copy)
                 remaining_edges = G_copy.number_of_edges()
+            else:
+                largest_wcc = 0
+                relative_size = 0
+                components = 0
+                remaining_edges = 0
 
-                results.append({
-                    "nodes_removed": i + 1,
-                    "largest_component_size": largest_cc,
-                    "num_components": num_components,
-                    "remaining_edges": remaining_edges
-                })
+            results.append({
+                "nodes_removed": i + 1,
+                "nodes_affected": len(affected_nodes),
+                "largest_component_size": largest_wcc,
+                "relative_size": relative_size,
+                "num_components": components,
+                "remaining_edges": remaining_edges
+            })
+
             if i % 100 == 0:
-                print(f"Removed node {i + 1} of {len(rich_club_nodes)}")
-        
-        print("Rich-club failure simulation completed.")
+                print(f"Removed {i+1} nodes, affected {len(affected_nodes)} nodes")
+
         return results
     
+    def get_rich_club_nodes(self, degree_type="in", degree_threshold=10, normalize=True):
+        """
+        Identify nodes belonging to the rich club while calculating their influence 
+        metrics to better understand their role in the network.
+        
+        Parameters:
+            degree_type (str): "in" for in-degree, "out" for out-degree
+            degree_threshold (int): Minimum degree for rich-club membership
+            normalize (bool): Whether to normalize rich club coefficients
+        
+        Returns:
+            List of tuples: (node, metrics) for rich club members
+        """
+        print(f"Analyzing rich club structure for {degree_type}-degree > {degree_threshold}...")
+        
+        # Set up degree function based on type
+        if degree_type == "in":
+            degree_func = self.G.in_degree
+            neighbor_func = self.G.predecessors
+        elif degree_type == "out":
+            degree_func = self.G.out_degree
+            neighbor_func = self.G.successors
+        else:
+            raise ValueError("degree_type must be 'in' or 'out'")
+
+        # Identify rich club nodes and calculate their metrics
+        rich_club_nodes = []
+        degrees = dict(degree_func())
+        
+        for node, degree in degrees.items():
+            if degree > degree_threshold:
+                # Calculate node's influence metrics
+                downstream_nodes = set()
+                stack = [node]
+                while stack:
+                    current = stack.pop()
+                    for successor in self.G.successors(current):
+                        if successor not in downstream_nodes:
+                            downstream_nodes.add(successor)
+                            stack.append(successor)
+                
+                # Calculate local clustering coefficient
+                local_clustering = nx.clustering(self.G, node)
+                
+                # Store node with its metrics
+                rich_club_nodes.append({
+                    'node': node,
+                    'degree': degree,
+                    'downstream_impact': len(downstream_nodes),
+                    'clustering': local_clustering
+                })
+        
+        # Sort by impact
+        rich_club_nodes.sort(key=lambda x: x['downstream_impact'], reverse=True)
+        
+        print(f"Rich Club Analysis Results:")
+        print(f"Found {len(rich_club_nodes)} rich-club nodes")
+        print(f"Average downstream impact: {np.mean([n['downstream_impact'] for n in rich_club_nodes]):.2f}")
+        print(f"Average clustering: {np.mean([n['clustering'] for n in rich_club_nodes]):.2f}")
+        
+        return rich_club_nodes
+
+    def simulate_rich_club_failure_batched(self, rich_club_nodes, batch_size=10):
+        """
+        Simulate cascading failures by removing rich-club nodes in batches while tracking detailed metrics
+        about network structure and cascade effects.
+        
+        Parameters:
+            rich_club_nodes (list): List of dictionaries containing rich club nodes and their metrics
+            batch_size (int): Number of nodes to process in each batch
+        
+        Returns:
+            List of dictionaries containing impact metrics at each step
+        """
+        print("Simulating rich-club failure cascade in batches...")
+        G_copy = self.G.copy()
+        initial_nodes = G_copy.number_of_nodes()
+        initial_edges = G_copy.number_of_edges()
+        results = []
+        total_nodes_removed = 0
+
+        # Process nodes in batches
+        for batch_start in range(0, len(rich_club_nodes), batch_size):
+            # Get current batch of nodes
+            batch = rich_club_nodes[batch_start:batch_start + batch_size]
+            batch_affected_nodes = set()
+            batch_metrics = {
+                'total_downstream_impact': 0,
+                'total_clustering': 0,
+                'nodes_in_batch': len(batch)
+            }
+            
+            # Process each node in the batch to calculate combined effects
+            for node_data in batch:
+                node = node_data['node']
+                if node in G_copy:
+                    # Track metrics for this node
+                    batch_metrics['total_downstream_impact'] += node_data['downstream_impact']
+                    batch_metrics['total_clustering'] += node_data['clustering']
+                    
+                    # Find cascade effect through dependency chain
+                    stack = [node]
+                    while stack:
+                        current = stack.pop()
+                        if current not in batch_affected_nodes:
+                            batch_affected_nodes.add(current)
+                            # Add nodes that depend on current node
+                            stack.extend([n for n in G_copy.predecessors(current) 
+                                        if n not in batch_affected_nodes])
+
+            # Remove all affected nodes at once for this batch
+            G_copy.remove_nodes_from(batch_affected_nodes)
+            total_nodes_removed += len(batch)
+            
+            # Calculate network metrics after batch removal
+            if G_copy.number_of_nodes() > 0:
+                largest_wcc = len(max(nx.weakly_connected_components(G_copy), key=len))
+                relative_size = largest_wcc / initial_nodes
+                components = nx.number_weakly_connected_components(G_copy)
+                remaining_edges = G_copy.number_of_edges()
+            else:
+                largest_wcc = 0
+                relative_size = 0
+                components = 0
+                remaining_edges = 0
+
+            # Store comprehensive metrics for this batch
+            results.append({
+                "nodes_removed": total_nodes_removed,
+                "nodes_affected": len(batch_affected_nodes),
+                "cascade_multiplier": len(batch_affected_nodes) / len(batch) if len(batch) > 0 else 0,
+                "largest_component_size": largest_wcc,
+                "relative_size": relative_size,
+                "num_components": components,
+                "remaining_edges": remaining_edges,
+                "removed_node_impact": batch_metrics['total_downstream_impact'] / batch_metrics['nodes_in_batch'],
+                "removed_node_clustering": batch_metrics['total_clustering'] / batch_metrics['nodes_in_batch']
+            })
+
+            print(f"Processed batch {batch_start//batch_size + 1}, "
+                f"removed {total_nodes_removed} nodes total, "
+                f"affected {len(batch_affected_nodes)} nodes in this batch")
+
+        print("Rich club failure simulation completed")
+        return results
+    
+    def plot_rich_club_cascade(self, results):
+        """
+        Visualize the impact of removing rich club nodes on network structure.
+        """
+        plt.figure(figsize=(12, 6))
+        
+        # Plot our three core metrics
+        plt.plot([r["nodes_removed"] for r in results], 
+                [r["largest_component_size"] for r in results], 
+                'b-', label='Largest Component Size')
+        
+        plt.plot([r["nodes_removed"] for r in results], 
+                [r["num_components"] for r in results], 
+                'r-', label='Number of Components')
+        
+        plt.plot([r["nodes_removed"] for r in results], 
+                [r["remaining_edges"] for r in results], 
+                'g-', label='Remaining Edges')
+        
+        plt.xlabel('Rich Club Nodes Removed')
+        plt.ylabel('Impact Metrics')
+        plt.title('Rich Club Cascade Impact')
+        plt.legend()
+        plt.grid(True)
+        
+        return plt.gcf()
+    
+    def plot_rich_club_characteristics(self, results):
+        """
+        Visualize rich club specific metrics during cascade.
+        """
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
+        
+        # Top plot: Cascade multiplication effect
+        ax1.plot([r["nodes_removed"] for r in results],
+                [r["cascade_multiplier"] for r in results],
+                'b-', label='Cascade Multiplier')
+        ax1.plot([r["nodes_removed"] for r in results],
+                [r["relative_size"] for r in results],
+                'r--', label='Relative Network Size')
+        ax1.set_ylabel('Multiplier Effect')
+        ax1.set_title('Rich Club Cascade Amplification')
+        ax1.legend()
+        ax1.grid(True)
+        
+        # Bottom plot: Node characteristics
+        ax2.plot([r["nodes_removed"] for r in results],
+                [r["removed_node_impact"] for r in results],
+                'g-', label='Removed Node Impact')
+        ax2.plot([r["nodes_removed"] for r in results],
+                [r["removed_node_clustering"] for r in results],
+                'purple', label='Local Clustering', linestyle='--')
+        ax2.set_xlabel('Rich Club Nodes Removed')
+        ax2.set_ylabel('Node Metrics')
+        ax2.set_title('Rich Club Node Characteristics')
+        ax2.legend()
+        ax2.grid(True)
+        
+        plt.tight_layout()
+        return fig
     def simulate_weak_tie_failure(self, n_remove=10):
         """
         Simulate cascading failure by removing nodes with the lowest degree.
@@ -978,71 +1063,6 @@ class NetworkVisualizer:
         
         print("Weak-tie failure simulation completed.")
         return results
-    def get_bridge_nodes_parallel(self, max_in_degree=10, num_workers=4):
-            """
-            Parallel implementation of bridge node detection using multiprocessing.
-            
-            Parameters:
-                max_in_degree (int): Maximum in-degree threshold
-                num_workers (int): Number of parallel workers
-                
-            Returns:
-                List of bridge nodes sorted by betweenness
-            """
-            import multiprocessing as mp
-            from itertools import islice
-            logging.info("Detecting bridge nodes in parallel...")
-            # Get low degree nodes
-            low_degree_nodes = list(n for n, d in self.G.in_degree() if d <= max_in_degree)
-            
-            if not low_degree_nodes:
-                return []
-            
-            logging.info(f"Found {len(low_degree_nodes)} low-degree nodes.")
-            # Create subgraph of low degree nodes
-            subgraph = self.G.subgraph(low_degree_nodes)
-            all_edges = list(subgraph.edges())
-            logging.info(f"Subgraph created with {len(all_edges)} edges.")
-            
-            logging.info(f"Splitting nodes into {num_workers} chunks...")
-            # Split nodes into chunks for parallel processing
-            chunk_size = len(low_degree_nodes) // num_workers
-            node_chunks = [
-                list(islice(low_degree_nodes, i, i + chunk_size))
-                for i in range(0, len(low_degree_nodes), chunk_size)
-            ]
-            
-            # Prepare data for parallel processing
-            # Each chunk contains (nodes, edges) tuple
-            chunk_data = []
-            logging.info(f"Processing {len(node_chunks)} chunks in parallel...")
-            for nodes in node_chunks:
-                # Get edges that involve nodes in this chunk
-                chunk_edges = [(u, v) for u, v in all_edges 
-                            if u in nodes or v in nodes]
-                chunk_data.append((nodes, chunk_edges))
-            # Calculate betweenness in parallel
-            with mp.Pool(num_workers) as pool:
-                chunk_results = pool.map(_chunk_betweenness, chunk_data)
-            
-            logging.info("Combining results...")
-            # Combine results
-            betweenness = {}
-            for result in chunk_results:
-                for node, score in result.items():
-                    if node in betweenness:
-                        betweenness[node] = max(betweenness[node], score)
-                    else:
-                        betweenness[node] = score
-            logging.info("Results combined.")
-            # Sort and return top nodes
-            bridge_nodes = sorted(
-                [(n, s) for n, s in betweenness.items()],
-                key=lambda x: x[1],
-                reverse=True
-            )
-            logging.info(f"Found {len(bridge_nodes)} bridge nodes with in-degree <= {max_in_degree}")
-            return [node for node, _ in bridge_nodes[:2502]]
 
     def get_stratified_low_degree_nodes(self, target_count=2502, max_in_degree=1):
         """
@@ -1090,164 +1110,178 @@ class NetworkVisualizer:
         
         print(f"Selected {len(selected_nodes)} nodes using stratified sampling")
         return selected_nodes[:target_count]
-    
-    
-    
-    def get_bridge_nodes(self, max_in_degree=10):
+        
+    def simulate_random_edge_removal(self, n_remove=2502):
         """
-        Get bridge nodes: nodes with low in-degree but high betweenness centrality.
-        These are packages that aren't widely depended upon but are important for
-        network connectivity.
+        Simulate cascading failure by removing edges randomly and tracking the cascade
+        effects through the network's dependency structure.
         
         Parameters:
-            max_in_degree (int): Maximum in-degree threshold for consideration
+            n_remove (int): Number of edges to remove (default matches node removal count)
         
         Returns:
-            List of bridge nodes sorted by betweenness centrality
+            List of dictionaries containing impact metrics at each step
         """
-        logging.info(f"Finding bridge nodes with in-degree <= {max_in_degree}...")
-        # First get nodes with low in-degree
-        low_degree_nodes = [n for n, d in self.G.in_degree() if d <= max_in_degree]
-        
-        # Calculate betweenness centrality for these nodes
-        betweenness = nx.betweenness_centrality(self.G)
-        
-        # Filter and sort nodes by betweenness
-        bridge_nodes = [(node, betweenness[node]) for node in low_degree_nodes]
-        bridge_nodes.sort(key=lambda x: x[1], reverse=True)
-        
-        # Take the same number of nodes as in your rich club for fair comparison
-        # num_rich_club = len(self.get_rich_club_nodes(degree_threshold=50))
-        num_rich_club = 2502
-        bridge_nodes = [node for node, _ in bridge_nodes[:num_rich_club]]
-        
-        logging.info(f"Found {len(bridge_nodes)} bridge nodes with in-degree <= {max_in_degree}")
-        return bridge_nodes
-    
-    # def get_bridge_nodes_parallel(self, max_in_degree=10, num_workers=4):
-    #     """
-    #     Parallel implementation of bridge node detection using multiprocessing.
-        
-    #     Parameters:
-    #         max_in_degree (int): Maximum in-degree threshold
-    #         num_workers (int): Number of parallel workers
-            
-    #     Returns:
-    #         List of bridge nodes sorted by betweenness
-    #     """
-    #     import multiprocessing as mp
-    #     from itertools import islice
-        
-    #     def chunk_betweenness(nodes):
-    #         subgraph = self.G.subgraph(nodes)
-    #         return nx.current_flow_betweenness_centrality(subgraph)
-        
-    #     # Get low degree nodes
-    #     low_degree_nodes = list(n for n, d in self.G.in_degree() if d <= max_in_degree)
-        
-    #     if not low_degree_nodes:
-    #         return []
-            
-    #     # Split nodes into chunks for parallel processing
-    #     chunk_size = len(low_degree_nodes) // num_workers
-    #     chunks = [
-    #         list(islice(low_degree_nodes, i, i + chunk_size))
-    #         for i in range(0, len(low_degree_nodes), chunk_size)
-    #     ]
-        
-    #     # Calculate betweenness in parallel
-    #     with mp.Pool(num_workers) as pool:
-    #         chunk_results = pool.map(chunk_betweenness, chunks)
-        
-    #     # Combine results
-    #     betweenness = {}
-    #     for result in chunk_results:
-    #         betweenness.update(result)
-        
-    #     # Sort and return top nodes
-    #     bridge_nodes = sorted(
-    #         [(n, s) for n, s in betweenness.items()],
-    #         key=lambda x: x[1],
-    #         reverse=True
-    #     )
-        
-    #     return [node for node, _ in bridge_nodes[:2502]]
-
-    def simulate_bridge_failure(self, bridge_nodes):
-        """
-        Simulate cascading failures by removing bridge nodes.
-        Follows the same structure as simulate_rich_club_failure for comparison.
-        
-        Parameters:
-            bridge_nodes (list): List of bridge nodes to remove
-        
-        Returns:
-            List of impact metrics after each removal
-        """
-        logging.info("Simulating bridge node failure...")
+        print("Simulating random edge removal...")
         G_copy = self.G.copy()
-        results = []
-
-        for i, node in enumerate(bridge_nodes):
-            if i % 100 == 0:
-                logging.info(f"Removed node {i + 1} of {len(bridge_nodes)}")
-            if node in G_copy:
-                G_copy.remove_node(node)
-
-                # Measure same metrics as rich club failure
-                largest_cc = len(max(nx.strongly_connected_components(G_copy), key=len))
-                num_components = nx.number_strongly_connected_components(G_copy)
-                remaining_edges = G_copy.number_of_edges()
-
-                results.append({
-                    "nodes_removed": i + 1,
-                    "largest_component_size": largest_cc,
-                    "num_components": num_components,
-                    "remaining_edges": remaining_edges
-                })
-            if i % 100 == 0:
-                logging.info(f"Removed node {i + 1} of {len(bridge_nodes)}")
-        
-        logging.info("Bridge node failure simulation completed.")
-        return results
-        
-    def simulate_random_edge_removal(self, n_remove=100):
-        """
-        Simulate cascading failure by removing edges randomly.
-        
-        Parameters:
-        - n_remove: Number of edges to remove.
-        
-        Returns:
-        - results: A list of dictionaries with the impact metrics at each step.
-        """
-        logging.info("Simulating random edge removal...")
-        G_copy = self.G.copy()
+        initial_nodes = G_copy.number_of_nodes()
+        initial_edges = G_copy.number_of_edges()
         edges = list(G_copy.edges())
-        np.random.shuffle(edges)
+        np.random.shuffle(edges)  # Randomize edge removal order
 
-        # Track impact metrics
         results = []
         for i in range(n_remove):
-            if i % 100 == 0:
-                logging.info(f"Removed edge {i + 1}")
-            if i < len(edges):
-                edge = edges[i]
-                G_copy.remove_edge(*edge)
+            if i >= len(edges):
+                break
                 
-                # Measure impact
-                largest_cc = len(max(nx.strongly_connected_components(G_copy), key=len))
-                num_components = nx.number_strongly_connected_components(G_copy)
-                remaining_edges = G_copy.number_of_edges()
+            # Remove the edge and identify affected nodes
+            edge = edges[i]
+            source, target = edge
+            G_copy.remove_edge(source, target)
+            
+            # Find nodes affected by this edge removal through dependency chain
+            affected_nodes = set()
+            stack = [target]  # Start with the target node of removed edge
+            while stack:
+                current = stack.pop()
+                if current not in affected_nodes:
+                    affected_nodes.add(current)
+                    # Add nodes that depend on current node to stack
+                    stack.extend([n for n in G_copy.predecessors(current) 
+                                if n not in affected_nodes])
 
-                results.append({
-                    "edges_removed": i + 1,
-                    "largest_component_size": largest_cc,
-                    "num_components": num_components,
-                    "remaining_edges": remaining_edges
-                })
-        logging.info(f"Simulated random edge removal for {n_remove} edges.")
+            # Measure impact
+            if G_copy.number_of_nodes() > 0:
+                largest_wcc = len(max(nx.weakly_connected_components(G_copy), key=len))
+                relative_size = largest_wcc / initial_nodes
+                components = nx.number_weakly_connected_components(G_copy)
+                remaining_edges = G_copy.number_of_edges()
+                edge_density = remaining_edges / initial_edges if initial_edges > 0 else 0
+            else:
+                largest_wcc = 0
+                relative_size = 0
+                components = 0
+                remaining_edges = 0
+                edge_density = 0
+
+            # Store results with same metrics as node removal
+            results.append({
+                "edges_removed": i + 1,
+                "nodes_affected": len(affected_nodes),
+                "cascade_multiplier": len(affected_nodes) / (i + 1),
+                "largest_component_size": largest_wcc,
+                "relative_size": relative_size,
+                "num_components": components,
+                "remaining_edges": remaining_edges
+            })
+
+            if i % 100 == 0:
+                print(f"Removed edge {i+1}, affected {len(affected_nodes)} nodes")
+
+        print(f"Completed random edge removal simulation after removing {len(results)} edges")
         return results
+    
+    def analyze_pagerank_during_cascade(self, n_remove=2502):
+        """
+        Analyze how PageRank distribution changes during cascade failure, providing insight
+        into network vulnerability and hierarchy.
+        
+        Parameters:
+            n_remove (int): Number of nodes to remove (default matches previous analysis)
+        
+        Returns:
+            Dictionary containing PageRank analysis metrics over cascade progression
+        """
+        print("Analyzing PageRank distribution during cascade...")
+        G_copy = self.G.copy()
+        initial_nodes = G_copy.number_of_nodes()
+        results = []
+        
+        # Calculate initial PageRank distribution
+        initial_pagerank = nx.pagerank(G_copy)
+        initial_max = max(initial_pagerank.values())
+        initial_mean = np.mean(list(initial_pagerank.values()))
+        
+        # Track nodes by their initial PageRank for removal
+        sorted_nodes = sorted(initial_pagerank.items(), key=lambda x: x[1], reverse=True)
+        
+        for i in range(0, n_remove, 100):  # Sample every 100 removals to keep computation manageable
+            # Remove next batch of highest PageRank nodes
+            for j in range(i, min(i + 100, n_remove)):
+                if j < len(sorted_nodes):
+                    node = sorted_nodes[j][0]
+                    if node in G_copy:
+                        # Find affected nodes through dependency chain
+                        affected_nodes = set()
+                        stack = [node]
+                        while stack:
+                            current = stack.pop()
+                            if current not in affected_nodes:
+                                affected_nodes.add(current)
+                                stack.extend([n for n in G_copy.predecessors(current) 
+                                        if n not in affected_nodes])
+                        
+                        G_copy.remove_nodes_from(affected_nodes)
+            
+            if G_copy.number_of_nodes() > 0:
+                # Calculate new PageRank distribution
+                current_pagerank = nx.pagerank(G_copy)
+                pagerank_values = list(current_pagerank.values())
+                
+                # Calculate concentration metrics
+                max_pagerank = max(pagerank_values)
+                mean_pagerank = np.mean(pagerank_values)
+                
+                # Calculate inequality metrics (how concentrated influence is)
+                sorted_values = sorted(pagerank_values)
+                n = len(sorted_values)
+                if n > 0:
+                    gini = sum(i * val for i, val in enumerate(sorted_values))
+                    gini = 2 * gini / (n * sum(sorted_values)) - (n + 1) / n
+                else:
+                    gini = 0
+                    
+                results.append({
+                    "nodes_removed": i,
+                    "nodes_remaining": G_copy.number_of_nodes(),
+                    "max_pagerank": max_pagerank,
+                    "mean_pagerank": mean_pagerank,
+                    "pagerank_gini": gini,
+                    "max_pagerank_ratio": max_pagerank / initial_max if initial_max > 0 else 0,
+                    "mean_pagerank_ratio": mean_pagerank / initial_mean if initial_mean > 0 else 0
+                })
+        
+        print("PageRank analysis completed.")
+        return results
+
+    def plot_pagerank_evolution(self, results):
+        """
+        Create visualization of PageRank metrics evolution during cascade failure.
+        """
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+        
+        # Plot PageRank concentration metrics
+        x = [r["nodes_removed"] for r in results]
+        ax1.plot(x, [r["max_pagerank"] for r in results], 'b-', label='Max PageRank')
+        ax1.plot(x, [r["mean_pagerank"] for r in results], 'r-', label='Mean PageRank')
+        ax1.set_xlabel('Nodes Removed')
+        ax1.set_ylabel('PageRank Value')
+        ax1.set_title('PageRank Concentration During Cascade')
+        ax1.grid(True)
+        ax1.legend()
+        
+        # Plot inequality metrics
+        ax2.plot(x, [r["pagerank_gini"] for r in results], 'g-', label='Gini Coefficient')
+        ax2.plot(x, [r["max_pagerank_ratio"] for r in results], 'purple', 
+                label='Max PageRank Ratio to Initial', linestyle='--')
+        ax2.set_xlabel('Nodes Removed')
+        ax2.set_ylabel('Inequality Metric')
+        ax2.set_title('Network Inequality Evolution During Cascade')
+        ax2.grid(True)
+        ax2.legend()
+        
+        plt.tight_layout()
+        return fig
     def simulate_incremental_weak_tie_removal(self, step_percentage=0.5):
         total_nodes = 2502
         step_size = int((step_percentage / 100) * total_nodes)
@@ -1277,68 +1311,7 @@ class NetworkVisualizer:
             print(f"Step {i // step_size + 1}: Removed {len(nodes_to_remove)} nodes")
 
         return results
-    # def simulate_cascade_failure_interval(self, n_remove=10, strategy="pagerank", interval=10):
-    #     """
-    #     Simulate cascade failure by removing top nodes based on a strategy,
-    #     measuring impact metrics at specified intervals.
-        
-    #     Parameters:
-    #         n_remove: Number of nodes to remove
-    #         strategy: "pagerank", "hubs", "authorities", or "random"
-    #         interval: How often to calculate metrics (every N nodes)
-    #     """
-    #     logging.info(f"Simulating cascade failure ({strategy})...")
-    #     G_copy = self.G.copy()
 
-    #     # Compute centrality metrics
-    #     if strategy == "pagerank":
-    #         pagerank = nx.pagerank(G_copy)
-    #         sorted_nodes = sorted(pagerank.items(), key=lambda x: x[1], reverse=True)
-    #     elif strategy == "hubs":
-    #         hubs, authorities = nx.hits(G_copy)
-    #         sorted_nodes = sorted(hubs.items(), key=lambda x: x[1], reverse=True)
-    #     elif strategy == "authorities":
-    #         hubs, authorities = nx.hits(G_copy)
-    #         sorted_nodes = sorted(authorities.items(), key=lambda x: x[1], reverse=True)
-    #     elif strategy == "random":
-    #         sorted_nodes = list(G_copy.nodes())
-    #         np.random.shuffle(sorted_nodes)
-    #     else:
-    #         raise ValueError("Invalid strategy")
-
-    #     results = []
-    #     nodes_to_remove = []
-        
-    #     for i in range(min(n_remove, len(sorted_nodes))):
-    #         node = sorted_nodes[i][0] if strategy != "random" else sorted_nodes[i]
-    #         if node in G_copy:
-    #             G_copy.remove_node(node)
-                
-    #             # Only calculate metrics at intervals
-    #             if (i + 1) % interval == 0 or i == n_remove - 1:
-    #                 # Measure impact
-    #                 largest_cc = len(max(nx.strongly_connected_components(G_copy), key=len))
-    #                 num_components = nx.number_strongly_connected_components(G_copy)
-    #                 remaining_edges = G_copy.number_of_edges()
-                    
-    #                 try:
-    #                     communities = community.best_partition(G_copy.to_undirected())
-    #                     modularity = community.modularity(communities, G_copy.to_undirected())
-    #                 except:
-    #                     modularity = None
-
-    #                 results.append({
-    #                     "nodes_removed": i + 1,
-    #                     "largest_component_size": largest_cc,
-    #                     "num_components": num_components,
-    #                     "remaining_edges": remaining_edges,
-    #                     "modularity": modularity
-    #                 })
-                    
-    #                 if i % 100 == 0:
-    #                     logging.info(f"Processed node {i + 1}")
-
-    #     return results
     def plot_cascade_results(self, results, removal_type="nodes", strategy="rich-club"):
         """
         Plot the results of a cascade simulation.
@@ -1398,7 +1371,7 @@ def main():
     # rich_club_plot.savefig('rich_club_normalized_in.png', dpi=300, bbox_inches='tight')
     # print(f"Rich club data for in-degree: {rich_club_data}")
 
-    # # You might want to do the same for out-degree
+    # You might want to do the same for out-degree
     # rich_club_plot_out, rich_club_data_out = visualizer.plot_rich_club(degree_type="out", n_random=10)
     # print(f"Rich club data for out-degree: {rich_club_data_out}")
     # rich_club_plot_out.savefig('rich_club_normalized_out.png', dpi=300, bbox_inches='tight')
@@ -1420,21 +1393,63 @@ def main():
     # visualizer.analyze_directed_assortativity()
     try:
         n_remove = 2502
-        page_rank_results = visualizer.simulate_cascade_failure_weak(n_remove=n_remove, strategy="pagerank")
+        # Basic connectivity and component analysis
+        # print(f"Number of strongly connected components: {nx.number_strongly_connected_components(visualizer.G)}")
+        # print(f"Size of largest strongly connected component: {len(max(nx.strongly_connected_components(visualizer.G), key=len))}")
 
-        # hubs_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="hubs")
+        # # Clustering
+        # avg_clustering = nx.average_clustering(visualizer.G)
+        # print(f"Average clustering coefficient: {avg_clustering}")
 
-        # auth_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="authorities")
+        # # For a large directed network like PyPI, sampling might be needed for path lengths
+        # # Take the largest strongly connected component for path analysis
+        # largest_cc = max(nx.strongly_connected_components(visualizer.G), key=len)
+        # largest_cc_graph = visualizer.G.subgraph(largest_cc)
 
-        # random_results = visualizer.simulate_cascade_failure(n_remove=n_remove, strategy="random")
+        # try:
+        #     # These might be computationally expensive
+        #     diameter = nx.diameter(largest_cc_graph)
+        #     avg_path = nx.average_shortest_path_length(largest_cc_graph)
+        #     print(f"Network diameter (largest SCC): {diameter}")
+        #     print(f"Average shortest path length (largest SCC): {avg_path}")
+        # except:
+        #     print("Path calculations too computationally intensive - consider sampling")
 
-        # results = visualizer.simulate_random_edge_removal(n_remove=n_remove)
+        # # Assortativity (which you already have)
+        # print("Degree Assortativity:")
+        # print(f"in-in: {nx.degree_assortativity_coefficient(visualizer.G, x='in', y='in')}")
+        # print(f"in-out: {nx.degree_assortativity_coefficient(visualizer.G, x='in', y='out')}")
+        # print(f"out-in: {nx.degree_assortativity_coefficient(visualizer.G, x='out', y='in')}")
+        # print(f"out-out: {nx.degree_assortativity_coefficient(visualizer.G, x='out', y='out')}")
+
+        zero_in_degree = sum(1 for _, d in visualizer.G.in_degree() if d == 0)
+        total_nodes = visualizer.G.number_of_nodes()
+        percentage = (zero_in_degree / total_nodes) * 100
+
+        print(f"Nodes with in-degree 0: {zero_in_degree}")
+        print(f"Percentage of total nodes: {percentage:.2f}%")
+        density = nx.density(visualizer.G)
+        print(f"Full network density: {density}")
+        # page_rank_results = visualizer.simulate_cascade_failure_weak(n_remove=n_remove, strategy="pagerank")
+
+        # hubs_results = visualizer.simulate_cascade_failure_weak(n_remove=n_remove, strategy="hubs")
+
+        #auth_results = visualizer.simulate_cascade_failure_weak(n_remove=n_remove, strategy="authorities")
+
+        random_results = visualizer.simulate_cascade_failure_weak_node_degree(n_remove=n_remove, strategy="random")
+
+        edge_removal_total = int((n_remove/582431) * 1781247)
+        print(f"Total edges to remove: {edge_removal_total}")
+        results = visualizer.simulate_random_edge_removal_node_degree(n_remove=edge_removal_total)
+        # results_page_rank = visualizer.analyze_pagerank_during_cascade(n_remove=n_remove)
+        # visualizer.plot_pagerank_evolution(results_page_rank)
 
     #     # targeted attack: rich nodes
     #     rich_club_nodes = visualizer.get_rich_club_nodes(degree_type="in", degree_threshold=50)
         
-    #     # Step 2: Simulate failures
-    #     results = visualizer.simulate_rich_club_failure(rich_club_nodes)
+    # #     # Step 2: Simulate failures
+    #     results = visualizer.simulate_rich_club_failure_batched(rich_club_nodes)
+
       #     #targeted attack bridge nodes
         # bridge_nodes = visualizer.get_bridge_nodes(max_in_degree=10)
         # bridge_results = visualizer.simulate_bridge_failure(bridge_nodes)
@@ -1442,17 +1457,22 @@ def main():
     finally:
         #     # Get the current date and time
         current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        # visualizer.plot_cascade_results(results, removal_type="edges", strategy="random")
-        # plt.savefig(f'edge_removal_{current_time}.png')
+        visualizer.plot_cascade_results(results, removal_type="edges", strategy="random")
+        plt.savefig(f'edge_removal_{current_time}.png')
+        # plt.savefig(f'page_rank_stats{current_time}.png')
         
     #     # Step 3: Plot the results
-    #     visualizer.plot_cascade_results(results, removal_type="nodes", strategy="rich-club")
+        # visualizer.plot_cascade_results(results, removal_type="nodes", strategy="rich-club")
+        # visualizer.plot_rich_club_characteristics(results)
+        # plt.savefig(f'rich_club_stats{current_time}.png')
 
+        # visualizer.plot_cascade_results(results)
+        # plt.savefig(f'rich_club_cascade{current_time}.png')
     #     # targeted attack weak ties
     #     results = visualizer.simulate_incremental_weak_tie_removal(step_percentage=0.5)
     #     visualizer.plot_cascade_results(results, removal_type="nodes", strategy="weak-tie")
-        visualizer.plot_cascade_results(page_rank_results, removal_type="nodes", strategy="pagerank")
-        plt.savefig(f'pagerank_plot_{current_time}.png')
+        # visualizer.plot_cascade_results(page_rank_results, removal_type="nodes", strategy="pagerank")
+        # plt.savefig(f'pagerank_plot_{current_time}.png')
 
         # visualizer.plot_cascade_results(hubs_results, removal_type="nodes", strategy="hubs")
         # plt.savefig(f'hubs_plot_{current_time}.png')
@@ -1460,8 +1480,8 @@ def main():
         # visualizer.plot_cascade_results(auth_results, removal_type="nodes", strategy="authorities")
         # plt.savefig(f'authorities_plot_{current_time}.png')
 
-        # visualizer.plot_cascade_results(random_results, removal_type="nodes", strategy="random")
-        # plt.savefig(f'random_plot_{current_time}.png')
+        visualizer.plot_cascade_results(random_results, removal_type="nodes", strategy="random")
+        plt.savefig(f'random_plot_{current_time}.png')
 
 
         # visualizer.plot_cascade_results(bridge_results, removal_type="nodes", strategy="bridge-nodes")
